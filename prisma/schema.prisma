@@ -1,0 +1,61 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Status {
+  DRAFT
+  PUBLISHED
+}
+
+model Seller {
+  id               String    @id @default(uuid())
+  fullName         String    @map("full_name")
+  email            String    @unique
+  password         String
+  organizationName String    @map("organization_name")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  products         Product[]
+
+  @@map("sellers")
+}
+
+model Category {
+  id           String    @id @default(uuid())
+  categoryName String    @map("category_name")
+  products     Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  sellerId    String   @map("seller_id")
+  categoryId  String   @map("category_id")
+  productName String   @map("product_name")
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(12, 2)
+  status      Status   @default(PUBLISHED)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  seller   Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+  images   Image[]
+
+  @@map("products")
+}
+
+model Image {
+  id         String   @id @default(uuid())
+  productId  String   @map("product_id")
+  imageUrl   String   @map("image_url")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("images")
+}
