@@ -181,6 +181,7 @@ export default function NewProductPage() {
         </div>
         <Link
           href="/dashboard"
+          replace
           className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-700 transition"
         >
           Kembali

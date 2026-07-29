@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation' // 1. TAMBAHKAN IMPOR INI
 import { loginSeller } from './action'
 
 export default function LoginPage() {
+  const router = useRouter() // 2. INISIALISASI ROUTER
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -18,8 +20,8 @@ export default function LoginPage() {
       const res = await loginSeller(formData)
 
       if (res && res.success) {
-        // Eksekusi redirect penuh ke dashboard
-        window.location.href = '/dashboard'
+        // 3. PERBAIKAN FATAL: Gunakan router.replace agar /login tertimpa di history
+        router.replace('/dashboard')
       } else {
         setError(res?.error || 'Email atau kata sandi salah.')
         setLoading(false)
