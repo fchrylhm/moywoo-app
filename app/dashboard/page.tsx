@@ -39,30 +39,30 @@ export default async function DashboardPage() {
   const products = seller.products
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      {/* Top Header & Navigation */}
-      <div className="flex justify-between items-center mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6">
+      {/* Top Header & Navigation - Responsif: Vertikal di Mobile, Horizontal di sm+ */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             Dashboard {seller.organizationName || seller.fullName}
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-xs sm:text-sm text-zinc-500 mt-1 sm:mt-0">
             Kelola katalog produk organisasi Anda ({seller.email})
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          {/* TOMBOL BARU: Jembatan menuju halaman Product List (FR-08) */}
+        {/* Button Group - Responsif: Auto wrap agar tidak overflow di layar kecil */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Link
             href="/dashboard/products"
-            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition font-medium text-sm border border-zinc-200 dark:border-zinc-700"
+            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-2 sm:px-4 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition font-medium text-xs sm:text-sm border border-zinc-200 dark:border-zinc-700"
           >
             Daftar Produk &rarr;
           </Link>
 
           <Link
             href="/dashboard/products/new"
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-medium text-sm"
+            className="bg-blue-600 text-white px-3 py-2 sm:px-4 rounded-md hover:bg-blue-700 transition font-medium text-xs sm:text-sm"
           >
             + Tambah Produk
           </Link>
@@ -70,7 +70,7 @@ export default async function DashboardPage() {
           <form action={logoutSeller}>
             <button
               type="submit"
-              className="bg-zinc-100 dark:bg-zinc-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-zinc-600 dark:text-zinc-300 hover:text-red-600 dark:hover:text-red-400 px-3 py-2 rounded-md transition text-sm font-medium border border-zinc-200 dark:border-zinc-700"
+              className="bg-zinc-100 dark:bg-zinc-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-zinc-600 dark:text-zinc-300 hover:text-red-600 dark:hover:text-red-400 px-3 py-2 rounded-md transition text-xs sm:text-sm font-medium border border-zinc-200 dark:border-zinc-700 cursor-pointer"
             >
               Keluar
             </button>
@@ -80,17 +80,17 @@ export default async function DashboardPage() {
 
       {/* Main Content: Product Grid / Empty State */}
       {products.length === 0 ? (
-        <div className="border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg p-12 text-center text-zinc-500">
-          <p className="mb-4">Belum ada produk yang dipublikasikan.</p>
+        <div className="border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg p-8 sm:p-12 text-center text-zinc-500">
+          <p className="mb-4 text-sm sm:text-base">Belum ada produk yang dipublikasikan.</p>
           <Link
             href="/dashboard/products/new"
-            className="text-blue-600 hover:underline font-medium"
+            className="text-blue-600 hover:underline font-medium text-sm sm:text-base"
           >
             Buat produk pertama Anda sekarang
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {products.map((product) => {
             const imageUrl = product.images[0]?.imageUrl || "/placeholder.png"
             return (
@@ -113,16 +113,16 @@ export default async function DashboardPage() {
                     </span>
                   )}
                   
-                  <h2 className="font-semibold text-lg mt-2 text-zinc-900 dark:text-zinc-100">
+                  <h2 className="font-semibold text-base sm:text-lg mt-2 text-zinc-900 dark:text-zinc-100">
                     {product.productName}
                   </h2>
                   
-                  <p className="text-zinc-500 text-sm line-clamp-2 mt-1">
+                  <p className="text-zinc-500 text-xs sm:text-sm line-clamp-2 mt-1">
                     {product.description || "Tidak ada deskripsi"}
                   </p>
                 </div>
 
-                <p className="font-bold text-blue-600 dark:text-blue-400 mt-4 text-lg">
+                <p className="font-bold text-blue-600 dark:text-blue-400 mt-4 text-base sm:text-lg">
                   Rp {Number(product.price).toLocaleString("id-ID")}
                 </p>
               </div>
