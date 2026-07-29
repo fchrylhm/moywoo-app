@@ -4,7 +4,66 @@ import { useState, ChangeEvent, FormEvent, useRef } from "react"
 import { createProduct } from "./action"
 import Link from "next/link"
 
-// Tipe data untuk menampilkan ringkasan di dalam modal
+// ============================================================================
+// UTILITAS KOMPRESI GAMBAR (CLIENT-SIDE CANVAS API)
+// ============================================================================
+async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<File> {
+  // Jika ukuran file di bawah 1 MB, kembalikan file asli tanpa kompresi
+  if (file.size <= 1024 * 1024) return file;
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+
+      // Rasio aspek proporsional
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return reject(new Error("Gagal membuat konteks canvas browser."));
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            return reject(new Error("Gagal mengompres gambar."));
+          }
+          // Paksa konversi ke JPEG untuk menjamin penurunan ukuran file yang signifikan
+          const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+
+    img.onerror = (error) => {
+      URL.revokeObjectURL(objectUrl);
+      reject(error);
+    };
+    img.src = objectUrl;
+  });
+}
+
+// ============================================================================
+// TIPE DATA
+// ============================================================================
 type PreviewData = {
   productName: string
   price: string
@@ -12,39 +71,76 @@ type PreviewData = {
   description: string
 } | null
 
+// ============================================================================
+// KOMPONEN UTAMA
+// ============================================================================
 export default function NewProductPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [compressedFile, setCompressedFile] = useState<File | null>(null)
+  const [isCompressing, setIsCompressing] = useState(false)
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   
-  // State & Ref baru untuk kontrol Modal Konfirmasi (FR-06 / Human Error Mitigation)
+  // Kontrol Modal Konfirmasi (Human Error Mitigation)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [previewData, setPreviewData] = useState<PreviewData>(null)
   const pendingFormDataRef = useRef<FormData | null>(null)
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+  // HANDLE CHANGE: Kompresi berjalan asinkron di background saat file dipilih
+  const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
+    setErrorMessage(null)
+
+    if (!file) {
+      setImagePreview(null)
+      setCompressedFile(null)
+      return
+    }
+
+    try {
+      setIsCompressing(true)
+      
+      // 1. Jalankan kompresi (File 9 MB akan menyusut ke ~300-600 KB)
+      const optimizedFile = await compressImage(file)
+      setCompressedFile(optimizedFile)
+
+      // 2. Buat preview visual untuk UI
       const reader = new FileReader()
       reader.onloadend = () => {
         setImagePreview(reader.result as string)
       }
-      reader.readAsDataURL(file)
-    } else {
+      reader.readAsDataURL(optimizedFile)
+    } catch (err: any) {
+      console.error("Image Compression Error:", err)
+      setErrorMessage("Gagal memproses gambar. Pastikan format file didukung.")
       setImagePreview(null)
+      setCompressedFile(null)
+    } finally {
+      setIsCompressing(false)
     }
   }
 
-  // TAHAP 1: Intercept form submit. Validasi HTML5 berjalan otomatis sebelum fungsi ini dieksekusi.
+  // TAHAP 1: Intercept form submit & timpa file mentah dengan file hasil kompresi
   const handlePreSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setErrorMessage(null)
     
-    // Tangkap data dari DOM dan simpan di dalam Ref agar aman dari siklus re-render
+    // Cegah submit jika gambar masih dalam proses kompresi
+    if (isCompressing) {
+      setErrorMessage("Tunggu sebentar, gambar sedang diproses...")
+      return
+    }
+
     const formData = new FormData(e.currentTarget)
+    
+    // CRITICAL FIX: Timpa input file mentah dari DOM dengan file hasil kompresi
+    if (compressedFile) {
+      formData.set("image", compressedFile)
+    }
+
     pendingFormDataRef.current = formData
 
-    // Siapkan data teks untuk ditampilkan secara visual pada modal konfirmasi
     setPreviewData({
       productName: formData.get("productName") as string,
       price: formData.get("price") as string,
@@ -52,16 +148,15 @@ export default function NewProductPage() {
       description: (formData.get("description") as string) || "Tidak ada deskripsi yang dilampirkan.",
     })
 
-    // Munculkan modal konfirmasi
     setShowConfirmModal(true)
   }
 
-  // TAHAP 2: Eksekusi backend Server Action setelah user menekan tombol konfirmasi di modal
+  // TAHAP 2: Eksekusi backend Server Action setelah konfirmasi
   const handleConfirmSubmit = async () => {
     if (!pendingFormDataRef.current) return
 
     setIsSubmitting(true)
-    setShowConfirmModal(false) // Tutup modal saat proses pengiriman ke server dimulai
+    setShowConfirmModal(false)
 
     try {
       await createProduct(pendingFormDataRef.current)
@@ -78,7 +173,7 @@ export default function NewProductPage() {
   return (
     <div className="max-w-2xl mx-auto my-10 p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm relative">
       
-      {/* HEADER DENGAN TOMBOL NAVIGASI KEMBALI */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
         <div>
           <h1 className="text-2xl font-bold mb-1 text-zinc-900 dark:text-zinc-100">Tambah Produk Baru</h1>
@@ -98,9 +193,9 @@ export default function NewProductPage() {
         </div>
       )}
 
-      {/* Form utama menggunakan onSubmit ke handlePreSubmit */}
+      {/* FORM UTAMA */}
       <form onSubmit={handlePreSubmit} className="space-y-5">
-        <fieldset disabled={isSubmitting} className="space-y-5 group-disabled:opacity-60 transition-opacity">
+        <fieldset disabled={isSubmitting || isCompressing} className="space-y-5 group-disabled:opacity-60 transition-opacity">
           <div>
             <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">Nama Produk</label>
             <input
@@ -158,7 +253,15 @@ export default function NewProductPage() {
               onChange={handleImageChange}
               className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-zinc-800 dark:file:text-zinc-200 disabled:cursor-not-allowed"
             />
-            {imagePreview && (
+            
+            {/* Indikator Proses Kompresi */}
+            {isCompressing && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 animate-pulse">
+                Mengompres resolusi gambar...
+              </p>
+            )}
+
+            {imagePreview && !isCompressing && (
               <div className="mt-3 relative w-32 h-32 border rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
               </div>
@@ -167,7 +270,7 @@ export default function NewProductPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isCompressing}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition disabled:bg-blue-500/50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm cursor-pointer"
           >
             {isSubmitting ? (
@@ -175,6 +278,8 @@ export default function NewProductPage() {
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 <span>Memproses & Menyimpan...</span>
               </>
+            ) : isCompressing ? (
+              "Memproses Gambar..."
             ) : (
               "Simpan & Publikasikan"
             )}
@@ -182,7 +287,7 @@ export default function NewProductPage() {
         </fieldset>
       </form>
 
-      {/* MODAL KONFIRMASI (Native Tailwind CSS Overlay) */}
+      {/* MODAL KONFIRMASI */}
       {showConfirmModal && previewData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-left">
@@ -191,7 +296,6 @@ export default function NewProductPage() {
               <p className="text-xs text-zinc-500 mt-1">Periksa kembali kebenaran data katalog sebelum dipublikasikan ke sistem.</p>
             </div>
 
-            {/* Box Ringkasan Data */}
             <div className="space-y-3 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-sm">
               {imagePreview && (
                 <div className="w-full h-36 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 mb-3 bg-white dark:bg-zinc-800">
@@ -220,7 +324,6 @@ export default function NewProductPage() {
               </div>
             </div>
 
-            {/* Tombol Aksi Modal */}
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
