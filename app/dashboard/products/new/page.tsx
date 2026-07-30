@@ -244,27 +244,50 @@ export default function NewProductPage() {
             />
           </div>
 
+          {/* FOTO PRODUK DENGAN INDIKATOR MANDATORY */}
           <div>
-            <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">Foto Produk</label>
-            <input
-              type="file"
-              name="image"
-              accept="image/*"
-              required
-              onChange={handleImageChange}
-              className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-zinc-800 dark:file:text-zinc-200 disabled:cursor-not-allowed"
-            />
+            <div className="flex items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Foto Produk
+              </label>
+              {/* Indikator Wajib (Bintang Merah) */}
+              <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
+            </div>
+            
+            {/* Helper Text untuk mempertegas instruksi */}
+            <p className="text-xs text-zinc-500 mb-2">
+              Unggah 1 foto terbaik untuk merepresentasikan produk Anda (Wajib).
+            </p>
+
+            <div className="relative group">
+              <input
+                type="file"
+                name="image"
+                accept="image/*"
+                required
+                onChange={handleImageChange}
+                /* Tambahan ring-offset merah tipis saat belum ada file yang dipilih untuk menarik perhatian */
+                className={`w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-zinc-800 dark:file:text-zinc-200 disabled:cursor-not-allowed transition-all ${!imagePreview && !isCompressing ? 'outline-dashed outline-2 outline-red-200/50 hover:outline-red-300 rounded-lg p-1' : ''}`}
+              />
+            </div>
             
             {/* Indikator Proses Kompresi */}
             {isCompressing && (
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 animate-pulse">
-                Mengompres resolusi gambar...
+              <p className="text-xs text-[#E47632] font-medium mt-2 animate-pulse flex items-center gap-1.5">
+                <span className="w-3 h-3 border-2 border-[#E47632] border-t-transparent rounded-full animate-spin"></span>
+                Memproses & mengoptimasi gambar...
               </p>
             )}
 
             {imagePreview && !isCompressing && (
-              <div className="mt-3 relative w-32 h-32 border rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+              <div className="mt-3 relative w-32 h-32 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 group-hover:border-[#355872] transition-colors">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                {/* Lencana Sukses Visual */}
+                <div className="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1 shadow-sm">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
               </div>
             )}
           </div>
