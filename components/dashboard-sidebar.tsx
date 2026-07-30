@@ -56,17 +56,11 @@ export default function DashboardSidebar({ seller }: SidebarProps) {
   return (
     <>
       {/* =========================================================
-          A. MOBILE TOPBAR (Muncul di layar HP < 768px)
+          A. MOBILE TOPBAR (DIREVISI: Hamburger Kiri, Profil Kanan)
          ========================================================= */}
       <header className="md:hidden flex items-center justify-between bg-[#355872] p-4 border-b border-[#355872]/80 shrink-0">
-        <div className="flex items-center gap-3 text-[#F7F8F0]">
-          <div className="w-8 h-8 rounded bg-[#E47632] flex items-center justify-center font-bold text-sm">
-            {seller.organizationName.charAt(0).toUpperCase()}
-          </div>
-          <span className="font-bold text-lg tracking-tight truncate max-w-[200px]">
-            {seller.organizationName}
-          </span>
-        </div>
+        
+        {/* 1. Tombol Hamburger (Sekarang di urutan pertama/kiri) */}
         <button 
           onClick={toggleMobileMenu}
           className="text-[#F7F8F0] hover:text-[#A0D6FE] focus:outline-none transition-colors"
@@ -76,6 +70,19 @@ export default function DashboardSidebar({ seller }: SidebarProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
+
+        {/* 2. Profil Merchant (Sekarang di urutan kedua/kanan) */}
+        <div className="flex items-center gap-3 text-[#F7F8F0]">
+          {/* Teks Nama Organisasi di-align kanan */}
+          <span className="font-bold text-lg tracking-tight truncate max-w-[150px] text-right">
+            {seller.organizationName}
+          </span>
+          {/* Avatar Inisial di ujung paling kanan */}
+          <div className="w-8 h-8 rounded bg-[#E47632] flex items-center justify-center font-bold text-sm shrink-0">
+            {seller.organizationName.charAt(0).toUpperCase()}
+          </div>
+        </div>
+
       </header>
 
       {/* =========================================================
@@ -98,7 +105,6 @@ export default function DashboardSidebar({ seller }: SidebarProps) {
       >
         {/* Header Logo Sidebar */}
         <div className="p-6 flex items-center justify-between md:block">
-          {/* Logo dibungkus Link agar bisa di-klik */}
           <Link href="/dashboard" onClick={closeMobileMenu} className="block w-fit">
             <Image 
               src="/logo-moywoo.png" 
@@ -120,7 +126,7 @@ export default function DashboardSidebar({ seller }: SidebarProps) {
           </button>
         </div>
 
-        {/* Profil Merchant */}
+        {/* Profil Merchant (Versi Drawer/Desktop) */}
         <div className="px-6 py-4 mb-4 border-y border-white/10 bg-white/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded bg-[#E47632] flex items-center justify-center font-bold text-white text-lg shrink-0">
@@ -133,15 +139,13 @@ export default function DashboardSidebar({ seller }: SidebarProps) {
           </div>
         </div>
 
-{/* Navigasi Utama */}
+        {/* Navigasi Utama */}
         <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
           <div className="text-xs font-semibold text-[#A0D6FE]/70 uppercase tracking-wider mb-3 px-2 mt-4">Menu Utama</div>
           {menuItems.map((item) => {
-            
-            // KOREKSI LOGIKA ACTIVE STATE:
             const isActive = item.href === '/dashboard' 
-              ? pathname === '/dashboard' // Jika Overview, URL harus persis '/dashboard'
-              : pathname.startsWith(item.href) // Jika menu lain, bisa toleransi sub-path
+              ? pathname === '/dashboard' 
+              : pathname.startsWith(item.href)
 
             return (
               <Link

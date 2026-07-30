@@ -8,7 +8,6 @@ import Link from "next/link"
 // UTILITAS KOMPRESI GAMBAR (CLIENT-SIDE CANVAS API)
 // ============================================================================
 async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<File> {
-  // Jika ukuran file di bawah 1 MB, kembalikan file asli tanpa kompresi
   if (file.size <= 1024 * 1024) return file;
 
   return new Promise((resolve, reject) => {
@@ -20,7 +19,6 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
       const canvas = document.createElement("canvas");
       let { width, height } = img;
 
-      // Rasio aspek proporsional
       if (width > maxWidth) {
         height = Math.round((height * maxWidth) / width);
         width = maxWidth;
@@ -41,7 +39,6 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
           if (!blob) {
             return reject(new Error("Gagal mengompres gambar."));
           }
-          // Paksa konversi ke JPEG untuk menjamin penurunan ukuran file yang signifikan
           const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
             type: "image/jpeg",
             lastModified: Date.now(),
@@ -67,6 +64,7 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
 type PreviewData = {
   productName: string
   price: string
+  stock: string
   categoryName: string
   description: string
 } | null
@@ -82,12 +80,10 @@ export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   
-  // Kontrol Modal Konfirmasi (Human Error Mitigation)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [previewData, setPreviewData] = useState<PreviewData>(null)
   const pendingFormDataRef = useRef<FormData | null>(null)
 
-  // HANDLE CHANGE: Kompresi berjalan asinkron di background saat file dipilih
   const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     setErrorMessage(null)
@@ -100,12 +96,9 @@ export default function NewProductPage() {
 
     try {
       setIsCompressing(true)
-      
-      // 1. Jalankan kompresi (File 9 MB akan menyusut ke ~300-600 KB)
       const optimizedFile = await compressImage(file)
       setCompressedFile(optimizedFile)
 
-      // 2. Buat preview visual untuk UI
       const reader = new FileReader()
       reader.onloadend = () => {
         setImagePreview(reader.result as string)
@@ -121,12 +114,10 @@ export default function NewProductPage() {
     }
   }
 
-  // TAHAP 1: Intercept form submit & timpa file mentah dengan file hasil kompresi
   const handlePreSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setErrorMessage(null)
     
-    // Cegah submit jika gambar masih dalam proses kompresi
     if (isCompressing) {
       setErrorMessage("Tunggu sebentar, gambar sedang diproses...")
       return
@@ -134,7 +125,6 @@ export default function NewProductPage() {
 
     const formData = new FormData(e.currentTarget)
     
-    // CRITICAL FIX: Timpa input file mentah dari DOM dengan file hasil kompresi
     if (compressedFile) {
       formData.set("image", compressedFile)
     }
@@ -144,6 +134,7 @@ export default function NewProductPage() {
     setPreviewData({
       productName: formData.get("productName") as string,
       price: formData.get("price") as string,
+      stock: formData.get("stock") as string,
       categoryName: formData.get("categoryName") as string,
       description: (formData.get("description") as string) || "Tidak ada deskripsi yang dilampirkan.",
     })
@@ -151,7 +142,6 @@ export default function NewProductPage() {
     setShowConfirmModal(true)
   }
 
-  // TAHAP 2: Eksekusi backend Server Action setelah konfirmasi
   const handleConfirmSubmit = async () => {
     if (!pendingFormDataRef.current) return
 
@@ -197,8 +187,11 @@ export default function NewProductPage() {
       {/* FORM UTAMA */}
       <form onSubmit={handlePreSubmit} className="space-y-5">
         <fieldset disabled={isSubmitting || isCompressing} className="space-y-5 group-disabled:opacity-60 transition-opacity">
+          
           <div>
-            <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">Nama Produk</label>
+            <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+              Nama Produk <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
+            </label>
             <input
               type="text"
               name="productName"
@@ -208,9 +201,12 @@ export default function NewProductPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* GRID DIREVISI MENJADI 3 KOLOM UNTUK MENGAKOMODASI STOK */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">Harga (Rp)</label>
+              <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+                Harga (Rp) <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
+              </label>
               <input
                 type="number"
                 name="price"
@@ -222,7 +218,23 @@ export default function NewProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">Kategori</label>
+              <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+                Stok <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
+              </label>
+              <input
+                type="number"
+                name="stock"
+                required
+                min="0"
+                placeholder="100"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+                Kategori <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
+              </label>
               <select
                 name="categoryName"
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 disabled:cursor-not-allowed"
@@ -244,17 +256,14 @@ export default function NewProductPage() {
             />
           </div>
 
-          {/* FOTO PRODUK DENGAN INDIKATOR MANDATORY */}
           <div>
             <div className="flex items-center gap-1 mb-1">
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Foto Produk
               </label>
-              {/* Indikator Wajib (Bintang Merah) */}
               <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
             </div>
             
-            {/* Helper Text untuk mempertegas instruksi */}
             <p className="text-xs text-zinc-500 mb-2">
               Unggah 1 foto terbaik untuk merepresentasikan produk Anda (Wajib).
             </p>
@@ -266,12 +275,10 @@ export default function NewProductPage() {
                 accept="image/*"
                 required
                 onChange={handleImageChange}
-                /* Tambahan ring-offset merah tipis saat belum ada file yang dipilih untuk menarik perhatian */
                 className={`w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-zinc-800 dark:file:text-zinc-200 disabled:cursor-not-allowed transition-all ${!imagePreview && !isCompressing ? 'outline-dashed outline-2 outline-red-200/50 hover:outline-red-300 rounded-lg p-1' : ''}`}
               />
             </div>
             
-            {/* Indikator Proses Kompresi */}
             {isCompressing && (
               <p className="text-xs text-[#E47632] font-medium mt-2 animate-pulse flex items-center gap-1.5">
                 <span className="w-3 h-3 border-2 border-[#E47632] border-t-transparent rounded-full animate-spin"></span>
@@ -282,7 +289,6 @@ export default function NewProductPage() {
             {imagePreview && !isCompressing && (
               <div className="mt-3 relative w-32 h-32 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 group-hover:border-[#355872] transition-colors">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                {/* Lencana Sukses Visual */}
                 <div className="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1 shadow-sm">
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -311,13 +317,13 @@ export default function NewProductPage() {
         </fieldset>
       </form>
 
-      {/* MODAL KONFIRMASI */}
+      {/* MODAL KONFIRMASI (DI-UPDATE DENGAN DATA STOK) */}
       {showConfirmModal && previewData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-left">
             <div className="border-b border-zinc-100 dark:border-zinc-800 pb-3">
               <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Konfirmasi Publikasi Produk</h3>
-              <p className="text-xs text-zinc-500 mt-1">Periksa kembali kebenaran data katalog sebelum dipublikasikan ke sistem.</p>
+              <p className="text-xs text-zinc-500 mt-1">Periksa kembali kebenaran data katalog sebelum dipublikasikan.</p>
             </div>
 
             <div className="space-y-3 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-sm">
@@ -327,7 +333,7 @@ export default function NewProductPage() {
                 </div>
               )}
               <div className="grid grid-cols-3 gap-2 border-b border-zinc-200/50 dark:border-zinc-700/50 pb-2">
-                <span className="text-zinc-500 font-medium">Nama Produk</span>
+                <span className="text-zinc-500 font-medium">Nama</span>
                 <span className="col-span-2 font-semibold text-zinc-900 dark:text-zinc-100">{previewData.productName}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 border-b border-zinc-200/50 dark:border-zinc-700/50 pb-2">
@@ -335,6 +341,10 @@ export default function NewProductPage() {
                 <span className="col-span-2 font-semibold text-blue-600 dark:text-blue-400">
                   Rp {Number(previewData.price || 0).toLocaleString("id-ID")}
                 </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 border-b border-zinc-200/50 dark:border-zinc-700/50 pb-2">
+                <span className="text-zinc-500 font-medium">Stok</span>
+                <span className="col-span-2 font-semibold text-zinc-900 dark:text-zinc-100">{previewData.stock} Pcs</span>
               </div>
               <div className="grid grid-cols-3 gap-2 border-b border-zinc-200/50 dark:border-zinc-700/50 pb-2">
                 <span className="text-zinc-500 font-medium">Kategori</span>
@@ -361,7 +371,7 @@ export default function NewProductPage() {
                 onClick={handleConfirmSubmit}
                 className="px-4 py-2 text-sm font-medium text-white bg-[#E47632] hover:bg-[#c96222] rounded-lg transition shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
-                <span>Konfirmasi & Publikasi</span>
+                <span>Publikasi</span>
               </button>
             </div>
           </div>
