@@ -51,7 +51,7 @@ export default async function ProductListPage() {
           </Link>
           <Link
             href="/dashboard/products/new"
-            className="flex-1 sm:flex-initial text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-medium text-sm shadow-sm"
+            className="flex-1 sm:flex-initial text-center bg-[#355872] text-white px-4 py-2 rounded-md hover:bg-[#274256] transition font-medium text-sm shadow-sm"
           >
             + Tambah Produk
           </Link>
@@ -64,7 +64,7 @@ export default async function ProductListPage() {
           <p className="mb-4 font-medium">Katalog produk Anda masih kosong.</p>
           <Link
             href="/dashboard/products/new"
-            className="text-blue-600 hover:underline font-semibold text-sm"
+            className="text-[#E47632] hover:underline font-semibold text-sm"
           >
             + Mulai publikasikan produk pertama Anda
           </Link>

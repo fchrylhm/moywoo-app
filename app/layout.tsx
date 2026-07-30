@@ -1,16 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google"; // Menggunakan Inter untuk estetika geometris modern
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Inisialisasi font tanpa perlu variabel config
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Moywoo — Platform Manajemen Usaha Danusan Kampus",
@@ -27,11 +20,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="id"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-moywoo-bg text-moywoo-slate font-sans selection:bg-[#A0D6FE] selection:text-[#355872]">
+    <html lang="id" className={`${inter.className} h-full antialiased`}>
+      {/* Hapus pemanggilan font-sans Tailwind, biarkan Inter mengambil alih secara absolut */}
+      <body className="min-h-full flex flex-col bg-moywoo-bg text-moywoo-slate selection:bg-[#A0D6FE] selection:text-[#355872]">
         {children}
       </body>
     </html>

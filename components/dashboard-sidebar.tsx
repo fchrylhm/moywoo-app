@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { logoutSeller } from '@/app/login/action'
@@ -17,7 +18,7 @@ interface SidebarProps {
 // Konfigurasi Navigasi Menu
 const menuItems = [
   {
-    name: 'Overview',
+    name: 'Dashboard',
     href: '/dashboard',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,10 +98,21 @@ export default function DashboardSidebar({ seller }: SidebarProps) {
       >
         {/* Header Logo Sidebar */}
         <div className="p-6 flex items-center justify-between md:block">
-          <div>
-            <h2 className="text-2xl font-black text-[#F7F8F0] tracking-tight">MOYWOO</h2>
-            <p className="text-xs text-[#A0D6FE] font-medium tracking-wide mt-1 uppercase">Merchant Center</p>
-          </div>
+          {/* Logo dibungkus Link agar bisa di-klik */}
+          <Link href="/dashboard" onClick={closeMobileMenu} className="block w-fit">
+            <Image 
+              src="/logo-moywoo.png" 
+              alt="Logo Moywoo" 
+              width={130} 
+              height={40} 
+              priority 
+              className="object-contain drop-shadow-sm transition-transform hover:scale-105"
+            />
+            <p className="text-[10px] text-[#A0D6FE] font-bold tracking-widest mt-2 uppercase">
+              Merchant Center
+            </p>
+          </Link>
+          
           <button onClick={closeMobileMenu} className="md:hidden text-[#F7F8F0] hover:text-[#E47632]">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

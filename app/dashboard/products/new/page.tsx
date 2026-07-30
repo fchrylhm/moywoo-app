@@ -272,7 +272,7 @@ export default function NewProductPage() {
           <button
             type="submit"
             disabled={isSubmitting || isCompressing}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition disabled:bg-blue-500/50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+            className="w-full bg-[#355872] hover:bg-[#274256] text-white font-medium py-2.5 rounded-lg transition disabled:bg-[#355872]/50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm cursor-pointer"
           >
             {isSubmitting ? (
               <>
@@ -336,7 +336,7 @@ export default function NewProductPage() {
               <button
                 type="button"
                 onClick={handleConfirmSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 text-sm font-medium text-white bg-[#E47632] hover:bg-[#c96222] rounded-lg transition shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <span>Konfirmasi & Publikasi</span>
               </button>
