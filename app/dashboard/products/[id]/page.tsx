@@ -5,13 +5,11 @@ import Link from "next/link"
 
 export const revalidate = 0
 
-// Mengatur tipe Props dengan Promise untuk dukungan penuh arsitektur Next.js 15+ / Turbopack
 type Props = {
   params: Promise<{ id: string }>
 }
 
 export default async function ProductDetailPage({ params }: Props) {
-  // 1. Resolve Dynamic Params & Validasi Autentikasi
   const { id } = await params
   const cookieStore = await cookies()
   const sellerId = cookieStore.get('seller_session')?.value
@@ -20,7 +18,6 @@ export default async function ProductDetailPage({ params }: Props) {
     redirect('/login')
   }
 
-  // 2. Fetch Data Produk secara mendalam (Deep Query)
   const product = await prisma.product.findUnique({
     where: { id: id },
     include: {
@@ -30,7 +27,6 @@ export default async function ProductDetailPage({ params }: Props) {
     },
   })
 
-  // 3. Proteksi Keamanan (IDOR Check): Pastikan produk ada dan milik seller yang login
   if (!product || product.sellerId !== sellerId) {
     redirect('/dashboard/products')
   }
@@ -39,7 +35,6 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header & Navigasi Back */}
       <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
           <Link
@@ -62,9 +57,7 @@ export default async function ProductDetailPage({ params }: Props) {
         </Link>
       </div>
 
-      {/* Main Content Showcase */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-        {/* Kolom Kiri: Foto Produk */}
         <div className="space-y-4">
           <div className="relative aspect-square w-full bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
             <img
@@ -78,7 +71,6 @@ export default async function ProductDetailPage({ params }: Props) {
           </p>
         </div>
 
-        {/* Kolom Kanan: Detail Spesifikasi */}
         <div className="flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -98,6 +90,14 @@ export default async function ProductDetailPage({ params }: Props) {
               Rp {Number(product.price).toLocaleString("id-ID")}
             </div>
 
+            {/* INJEKSI STOK */}
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Sisa Stok:</span>
+              <span className={`text-sm font-bold ${product.stock > 0 ? 'text-zinc-900 dark:text-zinc-100' : 'text-red-500'}`}>
+                {product.stock} Unit
+              </span>
+            </div>
+
             <hr className="border-zinc-100 dark:border-zinc-800" />
 
             <div>
@@ -110,7 +110,6 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Metadata Footer */}
           <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-400 space-y-1">
             <div className="flex justify-between">
               <span>Dipublikasikan oleh:</span>

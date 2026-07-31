@@ -7,7 +7,6 @@ import DeleteProductButton from "./delete-button"
 export const revalidate = 0 
 
 export default async function ProductListPage() {
-  // 1. Validasi Autentikasi via Cookie Session
   const cookieStore = await cookies()
   const sellerId = cookieStore.get('seller_session')?.value
 
@@ -15,7 +14,6 @@ export default async function ProductListPage() {
     redirect('/login')
   }
 
-  // 2. Optimasi Query: Tarik langsung dari model Product berdasarkan sellerId
   const products = await prisma.product.findMany({
     where: {
       sellerId: sellerId,
@@ -31,7 +29,6 @@ export default async function ProductListPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Top Header & Navigation */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -58,7 +55,6 @@ export default async function ProductListPage() {
         </div>
       </div>
 
-      {/* Main Container */}
       {products.length === 0 ? (
         <div className="border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg p-12 text-center text-zinc-500 bg-zinc-50/50 dark:bg-zinc-900/50">
           <p className="mb-4 font-medium">Katalog produk Anda masih kosong.</p>
@@ -71,9 +67,7 @@ export default async function ProductListPage() {
         </div>
       ) : (
         <>
-          {/* =========================================================
-              A. DESKTOP VIEW (TABLE): Tampil di layar md (768px) ke atas
-             ========================================================= */}
+          {/* A. DESKTOP VIEW */}
           <div className="hidden md:block border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900 shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -83,6 +77,7 @@ export default async function ProductListPage() {
                     <th className="p-4">Name</th>
                     <th className="p-4">Category</th>
                     <th className="p-4">Price</th>
+                    <th className="p-4">Stock</th>
                     <th className="p-4">Status</th>
                     <th className="p-4 text-right">Action</th>
                   </tr>
@@ -118,6 +113,9 @@ export default async function ProductListPage() {
                         <td className="p-4 font-semibold text-zinc-900 dark:text-zinc-100">
                           Rp {Number(product.price).toLocaleString("id-ID")}
                         </td>
+                        <td className={`p-4 font-bold ${product.stock > 0 ? 'text-zinc-900 dark:text-zinc-100' : 'text-red-500'}`}>
+                          {product.stock}
+                        </td>
                         <td className="p-4">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                             {product.status || "PUBLISHED"}
@@ -149,9 +147,7 @@ export default async function ProductListPage() {
             </div>
           </div>
 
-          {/* =========================================================
-              B. MOBILE VIEW (CARDS): Tampil khusus di HP (< 768px)
-             ========================================================= */}
+          {/* B. MOBILE VIEW */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
             {products.map((product) => {
               const imageUrl = product.images[0]?.imageUrl || "/placeholder.png"
@@ -160,7 +156,6 @@ export default async function ProductListPage() {
                   key={product.id}
                   className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-white dark:bg-zinc-900 shadow-sm space-y-3"
                 >
-                  {/* Baris Atas: Gambar, Nama Produk, Kategori, & Status */}
                   <div className="flex items-start gap-3">
                     <div className="w-16 h-16 rounded bg-zinc-100 dark:bg-zinc-800 overflow-hidden border border-zinc-200 dark:border-zinc-700 shrink-0">
                       <img
@@ -190,15 +185,22 @@ export default async function ProductListPage() {
                     </div>
                   </div>
 
-                  {/* Baris Tengah: Harga */}
-                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-                    <span className="text-xs text-zinc-500">Harga Satuan</span>
-                    <span className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
-                      Rp {Number(product.price).toLocaleString("id-ID")}
-                    </span>
+                  {/* INJEKSI STOK MOBILE: Layout diatur ulang agar Harga dan Stok terbagi rata */}
+                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 grid grid-cols-2 gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-zinc-500">Harga Satuan</span>
+                      <span className="font-bold text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
+                        Rp {Number(product.price).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-zinc-500">Sisa Stok</span>
+                      <span className={`font-bold text-sm sm:text-base ${product.stock > 0 ? 'text-zinc-900 dark:text-zinc-100' : 'text-red-500'}`}>
+                        {product.stock} Unit
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Baris Bawah: Action Buttons (Touch-Friendly) */}
                   <div className="flex items-center justify-end gap-2 pt-1">
                     <Link
                       href={`/dashboard/products/${product.id}`}

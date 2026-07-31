@@ -26,15 +26,16 @@ export default async function EditProductPage({ params }: Props) {
     },
   })
 
-  // Validasi IDOR di level halaman sebelum merender form edit
   if (!product || product.sellerId !== sellerId) {
     redirect('/dashboard/products')
   }
 
+  // INJEKSI STOK KE DALAM FORMATTED DATA
   const formattedData = {
     id: product.id,
     productName: product.productName,
     price: Number(product.price),
+    stock: product.stock, 
     description: product.description || "",
     categoryName: product.category?.categoryName || "Umum",
     imageUrl: product.images[0]?.imageUrl || "/placeholder.png",

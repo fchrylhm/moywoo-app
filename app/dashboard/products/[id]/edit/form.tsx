@@ -4,31 +4,33 @@ import { useState, ChangeEvent, FormEvent, useRef } from "react"
 import { updateProduct } from "./action"
 import Link from "next/link"
 
+// INJEKSI STOK: Tambahkan tipe stock pada props
 type EditFormProps = {
   initialData: {
     id: string
     productName: string
     price: number
+    stock: number 
     description: string
     categoryName: string
     imageUrl: string
   }
 }
 
+// INJEKSI STOK: Tambahkan tipe stock pada antarmuka preview modal
 type PreviewData = {
   productName: string
   price: string
+  stock: string 
   categoryName: string
   description: string
 } | null
 
 export default function EditProductForm({ initialData }: EditFormProps) {
-  // Inisialisasi preview gambar secara aman menggunakan initialData dari page.tsx
   const [imagePreview, setImagePreview] = useState<string | null>(initialData.imageUrl)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  // State & Ref untuk mengontrol Modal Konfirmasi
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [previewData, setPreviewData] = useState<PreviewData>(null)
   const pendingFormDataRef = useRef<FormData | null>(null)
@@ -42,12 +44,10 @@ export default function EditProductForm({ initialData }: EditFormProps) {
       }
       reader.readAsDataURL(file)
     } else {
-      // Kembali ke foto asli jika batal memilih file baru
       setImagePreview(initialData.imageUrl)
     }
   }
 
-  // TAHAP 1: Intercept form submit untuk menahan payload & membuka modal
   const handlePreSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setErrorMessage(null)
@@ -55,9 +55,11 @@ export default function EditProductForm({ initialData }: EditFormProps) {
     const formData = new FormData(e.currentTarget)
     pendingFormDataRef.current = formData
 
+    // INJEKSI STOK: Tangkap nilai stok untuk ditampilkan di Modal
     setPreviewData({
       productName: formData.get("productName") as string,
       price: formData.get("price") as string,
+      stock: formData.get("stock") as string, 
       categoryName: formData.get("categoryName") as string,
       description: (formData.get("description") as string) || "Tidak ada deskripsi yang dilampirkan.",
     })
@@ -65,7 +67,6 @@ export default function EditProductForm({ initialData }: EditFormProps) {
     setShowConfirmModal(true)
   }
 
-  // TAHAP 2: Eksekusi Server Action setelah dikonfirmasi via modal
   const handleConfirmSubmit = async () => {
     if (!pendingFormDataRef.current) return
 
@@ -73,7 +74,6 @@ export default function EditProductForm({ initialData }: EditFormProps) {
     setShowConfirmModal(false)
 
     try {
-      // Mengirim ID dari initialData beserta FormData yang tertahan di useRef
       await updateProduct(initialData.id, pendingFormDataRef.current)
     } catch (error: any) {
       if (error?.message === 'NEXT_REDIRECT' || error?.digest?.startsWith('NEXT_REDIRECT')) {
@@ -88,7 +88,6 @@ export default function EditProductForm({ initialData }: EditFormProps) {
   return (
     <div className="max-w-2xl mx-auto my-10 p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm relative">
       
-      {/* HEADER DENGAN TOMBOL NAVIGASI KEMBALI */}
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
         <div>
           <h1 className="text-2xl font-bold mb-1 text-zinc-900 dark:text-zinc-100">Edit Produk</h1>
@@ -108,7 +107,6 @@ export default function EditProductForm({ initialData }: EditFormProps) {
         </div>
       )}
 
-      {/* Form utama menggunakan onSubmit ke handlePreSubmit */}
       <form onSubmit={handlePreSubmit} className="space-y-5">
         <fieldset disabled={isSubmitting} className="space-y-5 group-disabled:opacity-60 transition-opacity">
           <div>
@@ -123,7 +121,8 @@ export default function EditProductForm({ initialData }: EditFormProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* INJEKSI STOK: Mengubah grid menjadi 3 kolom */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Harga (Rp)</label>
               <input
@@ -133,6 +132,19 @@ export default function EditProductForm({ initialData }: EditFormProps) {
                 min="0"
                 defaultValue={initialData.price}
                 placeholder="15000"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Stok Fisik</label>
+              <input
+                type="number"
+                name="stock"
+                required
+                min="0"
+                defaultValue={initialData.stock}
+                placeholder="100"
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 disabled:cursor-not-allowed"
               />
             </div>
@@ -166,7 +178,7 @@ export default function EditProductForm({ initialData }: EditFormProps) {
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-medium">Foto Produk</label>
               <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                *Opsional: Biarkan kosong jika tidak ingin mengganti foto
+                *Opsional: Kosongkan jika tidak mengganti foto
               </span>
             </div>
             <input
@@ -200,16 +212,14 @@ export default function EditProductForm({ initialData }: EditFormProps) {
         </fieldset>
       </form>
 
-      {/* MODAL KONFIRMASI PERUBAHAN */}
       {showConfirmModal && previewData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-left">
             <div className="border-b border-zinc-100 dark:border-zinc-800 pb-3">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Konfirmasi Perubahan Produk</h3>
-              <p className="text-xs text-zinc-500 mt-1">Periksa kembali pembaruan data sebelum disimpan ke database.</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Konfirmasi Perubahan</h3>
+              <p className="text-xs text-zinc-500 mt-1">Periksa kembali pembaruan data sebelum disimpan.</p>
             </div>
 
-            {/* Box Ringkasan Data */}
             <div className="space-y-3 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-sm">
               {imagePreview && (
                 <div className="w-full h-36 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 mb-3 bg-white dark:bg-zinc-800">
@@ -221,9 +231,9 @@ export default function EditProductForm({ initialData }: EditFormProps) {
                 <span className="col-span-2 font-semibold text-zinc-900 dark:text-zinc-100">{previewData.productName}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 border-b border-zinc-200/50 dark:border-zinc-700/50 pb-2">
-                <span className="text-zinc-500 font-medium">Harga</span>
+                <span className="text-zinc-500 font-medium">Harga & Stok</span>
                 <span className="col-span-2 font-semibold text-amber-600 dark:text-amber-400">
-                  Rp {Number(previewData.price || 0).toLocaleString("id-ID")}
+                  Rp {Number(previewData.price || 0).toLocaleString("id-ID")} <span className="text-zinc-400 font-normal mx-1">|</span> Stok: {previewData.stock}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 border-b border-zinc-200/50 dark:border-zinc-700/50 pb-2">
@@ -238,7 +248,6 @@ export default function EditProductForm({ initialData }: EditFormProps) {
               </div>
             </div>
 
-            {/* Tombol Aksi Modal */}
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -252,7 +261,7 @@ export default function EditProductForm({ initialData }: EditFormProps) {
                 onClick={handleConfirmSubmit}
                 className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
-                <span>Simpan Perubahan</span>
+                Simpan Perubahan
               </button>
             </div>
           </div>
