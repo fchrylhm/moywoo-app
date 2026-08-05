@@ -22,20 +22,25 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
         
-        const seller = await prisma.seller.findUnique({
-          where: { email: credentials.email },
-        });
-        
-        if (!seller) return null;
-        if (seller.password !== credentials.password) return null;
-        
-        return {
-          id: seller.id,
-          email: seller.email,
-          name: seller.fullName,
-          role: "seller",
-          sellerld: seller.id,
-        };
+        try {
+          const seller = await prisma.seller.findUnique({
+            where: { email: credentials.email },
+          });
+          
+          if (!seller) return null;
+          if (seller.password !== credentials.password) return null;
+          
+          return {
+            id: seller.id,
+            email: seller.email,
+            name: seller.fullName,
+            role: "seller",
+            sellerId: seller.id, // Typo sellerld telah diperbaiki menjadi sellerId
+          };
+        } catch (error) {
+          console.error("Prisma Auth Error:", error);
+          return null; // Mencegah crash jika koneksi database Vercel bermasalah
+        }
       },
     }),
   ],
@@ -43,25 +48,29 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         if (!user.email) return false;
-        await prisma.buyer.upsert({
-          where: { email: user.email },
-          update: { fullName: user.name || "Buyer" },
-          create: {
-            email: user.email,
-            fullName: user.name || "Buyer",
-          },
-        });
-        return true;
+        try {
+          await prisma.buyer.upsert({
+            where: { email: user.email },
+            update: { fullName: user.name || "Buyer" },
+            create: {
+              email: user.email,
+              fullName: user.name || "Buyer",
+            },
+          });
+          return true;
+        } catch (error) {
+          console.error("Prisma Google Auth Error:", error);
+          return false;
+        }
       }
-      // Wajib return true untuk provider 'seller-login'
       return true; 
     },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role || "buyer";
-        if ((user as any).sellerld) {
-          token.sellerld = (user as any).sellerld;
+        if ((user as any).sellerId) {
+          token.sellerId = (user as any).sellerId; // Menggunakan sellerId yang benar
         }
       }
       return token;
@@ -70,14 +79,10 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
-        (session.user as any).sellerld = token.sellerld;
+        (session.user as any).sellerId = token.sellerId; // Menggunakan sellerId yang benar
       }
       return session;
     },
-  },
-  pages: {
-    signIn: "/seller/login",
-    error: "/seller/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
