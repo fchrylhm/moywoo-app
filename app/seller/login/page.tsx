@@ -141,12 +141,23 @@ export default function SellerLoginPage() {
           </button>
         </form>
 
-        {/* CROSS-LINK KE PORTAL BUYER */}
-        <div className="mt-8 text-center text-xs text-moywoo-slate/60">
-          Hanya ingin berbelanja?{" "}
-          <Link href="/login" className="font-bold text-moywoo-blue hover:underline">
-            Masuk sebagai Pembeli
-          </Link>
+        {/* NAVIGASI BAWAH: REGISTRASI & CROSS-LINK */}
+        <div className="mt-8 flex flex-col items-center space-y-4">
+          {/* LINK KE REGISTRASI SELLER */}
+          <div className="text-sm text-moywoo-slate/75">
+            Belum memiliki akun Seller?{" "}
+            <Link href="/seller/register" className="font-bold text-moywoo-orange hover:underline transition-all">
+              Daftar Sekarang
+            </Link>
+          </div>
+
+          {/* CROSS-LINK KE PORTAL BUYER */}
+          <div className="text-xs text-moywoo-slate/60">
+            Hanya ingin berbelanja?{" "}
+            <Link href="/login" className="font-bold text-moywoo-blue hover:underline transition-all">
+              Masuk sebagai Pembeli
+            </Link>
+          </div>
         </div>
       </div>
     </div>
