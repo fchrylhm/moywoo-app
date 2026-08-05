@@ -4,10 +4,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
-  // INJEKSI FATAL: Deklarasi eksplisit bahwa sistem menggunakan token JWT, 
-  // satu-satunya format yang bisa dibaca oleh Middleware NextAuth.
   session: {
-    strategy: "jwt", 
+    strategy: "jwt",
   },
   providers: [
     GoogleProvider({
@@ -15,7 +13,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
     CredentialsProvider({
-      id: "seller-login", 
+      id: "seller-login",
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -23,20 +21,20 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-
+        
         const seller = await prisma.seller.findUnique({
           where: { email: credentials.email },
         });
-
+        
         if (!seller) return null;
         if (seller.password !== credentials.password) return null;
-
+        
         return {
           id: seller.id,
           email: seller.email,
           name: seller.fullName,
           role: "seller",
-          sellerId: seller.id,
+          sellerld: seller.id,
         };
       },
     }),
@@ -45,7 +43,6 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         if (!user.email) return false;
-
         await prisma.buyer.upsert({
           where: { email: user.email },
           update: { fullName: user.name || "Buyer" },
@@ -54,15 +51,17 @@ export const authOptions: NextAuthOptions = {
             fullName: user.name || "Buyer",
           },
         });
+        return true;
       }
-      return true;
+      // Wajib return true untuk provider 'seller-login'
+      return true; 
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role || "buyer";
-        if ((user as any).sellerId) {
-          token.sellerId = (user as any).sellerId;
+        if ((user as any).sellerld) {
+          token.sellerld = (user as any).sellerld;
         }
       }
       return token;
@@ -71,18 +70,17 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
-        (session.user as any).sellerId = token.sellerId;
+        (session.user as any).sellerld = token.sellerld;
       }
       return session;
     },
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: "/seller/login",
+    error: "/seller/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

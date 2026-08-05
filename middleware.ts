@@ -5,10 +5,11 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
+    
+    // Membaca property 'sellerld' dari JWT payload Anda
+    const isSeller = !!token?.sellerld || token?.role === "seller";
 
-    const isSeller = !!token?.sellerId || token?.role === "seller"; 
-
-    // PROTEKSI 1: Mahasiswa/Buyer dilarang masuk ke area organisasi
+    // PROTEKSI 1: Jika bukan seller (misal: buyer / belum login) mencoba masuk dashboard, tendang ke home
     if (path.startsWith("/dashboard") && !isSeller) {
       return NextResponse.redirect(new URL("/", req.url));
     }
@@ -22,19 +23,17 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token, 
+      // Wajibkan harus ada token untuk rute yang di-match
+      authorized: ({ token }) => !!token,
     },
     pages: {
-      signIn: "/login",
+      // INI KUNCI FIX-NYA: arahkan ke seller login saat unauthorized
+      signIn: "/seller/login",
     },
-    // INJEKSI FATAL: Memaksa Edge Runtime untuk mengetahui kunci dekripsi token
     secret: process.env.NEXTAUTH_SECRET,
   }
 );
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/cart/:path*",
-  ],
+  matcher: ["/dashboard/:path*", "/cart/:path*"],
 };
