@@ -8,30 +8,53 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     CredentialsProvider({
+      id: "seller-login", // Ditetapkan eksplisit agar cocok jika frontend memanggil "seller-login"
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        console.log("--- PROSES LOGIN SELLER DIMULAI ---");
         
+        if (!credentials?.email || !credentials?.password) {
+          console.log("DIAGNOSTIK: Email atau password kosong dari Form Input.");
+          return null;
+        }
+
+        const cleanEmail = credentials.email.trim();
+        const cleanPassword = credentials.password.trim();
+
         try {
+          // 1. Cari Seller di Database
           const seller = await prisma.seller.findUnique({
-            where: { email: credentials.email },
+            where: { email: cleanEmail },
           });
-          
-          if (!seller || seller.password !== credentials.password) {
+
+          if (!seller) {
+            console.log(`DIAGNOSTIK: Email '${cleanEmail}' TIDAK DITEMUKAN di tabel 'sellers' Supabase.`);
             return null;
           }
-          
+
+          console.log(`DIAGNOSTIK: Seller ditemukan. Email: ${seller.email}`);
+
+          // 2. Evaluasi Kata Sandi (Plain-text)
+          const isPasswordMatch = seller.password.trim() === cleanPassword;
+
+          if (!isPasswordMatch) {
+            console.log("DIAGNOSTIK: Password TIDAK COCOK!");
+            console.log(`Input Form: '${cleanPassword}' | Di Database: '${seller.password}'`);
+            return null;
+          }
+
+          console.log("DIAGNOSTIK: Login BERHASIL!");
           return {
             id: seller.id,
             email: seller.email,
             name: seller.fullName,
           };
         } catch (error) {
-          console.error("Database connection error:", error);
+          console.error("DIAGNOSTIK FATAL (Koneksi DB Gagal):", error);
           return null;
         }
       },
