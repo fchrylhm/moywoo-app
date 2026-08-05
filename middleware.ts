@@ -28,7 +28,7 @@ export default withAuth(
     },
     pages: {
       // INI KUNCI FIX-NYA: arahkan ke seller login saat unauthorized
-      signIn: "/seller/login",
+      signIn: "/login",
     },
     secret: process.env.NEXTAUTH_SECRET,
   }
