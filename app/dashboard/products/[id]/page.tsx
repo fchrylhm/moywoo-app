@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 
@@ -11,12 +12,16 @@ type Props = {
 
 export default async function ProductDetailPage({ params }: Props) {
   const { id } = await params
-  const cookieStore = await cookies()
-  const sellerId = cookieStore.get('seller_session')?.value
+  
+  // VALIDASI BARU
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) redirect('/seller/login')
 
-  if (!sellerId) {
-    redirect('/login')
-  }
+  const seller = await prisma.seller.findUnique({
+    where: { email: session.user.email },
+    select: { id: true }
+  })
+  if (!seller) redirect('/seller/login')
 
   const product = await prisma.product.findUnique({
     where: { id: id },
@@ -27,12 +32,13 @@ export default async function ProductDetailPage({ params }: Props) {
     },
   })
 
-  if (!product || product.sellerId !== sellerId) {
+  if (!product || product.sellerId !== seller.id) {
     redirect('/dashboard/products')
   }
 
   const imageUrl = product.images[0]?.imageUrl || "/placeholder.png"
 
+  // -- SISA KODE KE BAWAH ADALAH UI ANDA (TIDAK ADA YANG DIUBAH) --
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -90,7 +96,6 @@ export default async function ProductDetailPage({ params }: Props) {
               Rp {Number(product.price).toLocaleString("id-ID")}
             </div>
 
-            {/* INJEKSI STOK */}
             <div className="flex items-center gap-2 mt-2">
               <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Sisa Stok:</span>
               <span className={`text-sm font-bold ${product.stock > 0 ? 'text-zinc-900 dark:text-zinc-100' : 'text-red-500'}`}>
@@ -105,7 +110,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 Deskripsi Produk
               </h3>
               <p className="text-zinc-600 dark:text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
-                {product.description || "Tidak ada deksripsi yang dilampirkan untuk produk ini."}
+                {product.description || "Tidak ada deskripsi yang dilampirkan untuk produk ini."}
               </p>
             </div>
           </div>

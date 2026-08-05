@@ -1,5 +1,7 @@
-import { cookies } from "next/headers"
+// app/dashboard/layout.tsx
 import { redirect } from "next/navigation"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 
@@ -8,17 +10,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  // 1. Ekstraksi Autentikasi Sesi
-  const cookieStore = await cookies()
-  const sellerId = cookieStore.get("seller_session")?.value
+  // 1. Validasi Sesi NextAuth
+  const session = await getServerSession(authOptions)
 
-  if (!sellerId) {
-    redirect("/login")
+  if (!session?.user?.email) {
+    redirect("/seller/login") // Arahkan ke portal organisasi
   }
 
-  // 2. Tarik Data Seller Berdasarkan Sesi Aktif
+  // 2. Tarik Data Seller
   const seller = await prisma.seller.findUnique({
-    where: { id: sellerId },
+    where: { email: session.user.email },
     select: {
       fullName: true,
       organizationName: true,
@@ -26,18 +27,15 @@ export default async function DashboardLayout({
     },
   })
 
-  // Proteksi ganda jika ID dari cookie tidak valid / terhapus di database
   if (!seller) {
-    redirect("/login")
+    redirect("/seller/login")
   }
 
-  // 3. Render Struktur App Shell
+  // 3. Render Cangkang Dashboard & Sidebar
   return (
     <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-[#F7F8F0] dark:bg-zinc-950 font-sans">
-      {/* Sidebar Injeksi: Menangani navigasi dan Mobile Drawer */}
       <DashboardSidebar seller={seller} />
       
-      {/* Area Workspace Konten Utama */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full h-full">
         <div className="w-full min-h-full">
           {children}

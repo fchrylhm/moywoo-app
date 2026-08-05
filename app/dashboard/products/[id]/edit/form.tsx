@@ -4,7 +4,6 @@ import { useState, ChangeEvent, FormEvent, useRef } from "react"
 import { updateProduct } from "./action"
 import Link from "next/link"
 
-// INJEKSI STOK: Tambahkan tipe stock pada props
 type EditFormProps = {
   initialData: {
     id: string
@@ -17,7 +16,6 @@ type EditFormProps = {
   }
 }
 
-// INJEKSI STOK: Tambahkan tipe stock pada antarmuka preview modal
 type PreviewData = {
   productName: string
   price: string
@@ -34,6 +32,22 @@ export default function EditProductForm({ initialData }: EditFormProps) {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [previewData, setPreviewData] = useState<PreviewData>(null)
   const pendingFormDataRef = useRef<FormData | null>(null)
+
+  // INJEKSI UX: State inisialisasi dari initialData.price ke string dengan format ribuan
+  const [priceDisplay, setPriceDisplay] = useState(
+    initialData.price ? initialData.price.toLocaleString("id-ID") : ""
+  )
+
+  // INJEKSI UX: Handler format
+  const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, "")
+    if (!rawValue) {
+      setPriceDisplay("")
+      return
+    }
+    const formatted = Number(rawValue).toLocaleString("id-ID")
+    setPriceDisplay(formatted)
+  }
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -55,10 +69,9 @@ export default function EditProductForm({ initialData }: EditFormProps) {
     const formData = new FormData(e.currentTarget)
     pendingFormDataRef.current = formData
 
-    // INJEKSI STOK: Tangkap nilai stok untuk ditampilkan di Modal
     setPreviewData({
       productName: formData.get("productName") as string,
-      price: formData.get("price") as string,
+      price: formData.get("price") as string, // Tetap mengambil hidden input murni
       stock: formData.get("stock") as string, 
       categoryName: formData.get("categoryName") as string,
       description: (formData.get("description") as string) || "Tidak ada deskripsi yang dilampirkan.",
@@ -87,7 +100,6 @@ export default function EditProductForm({ initialData }: EditFormProps) {
 
   return (
     <div className="max-w-2xl mx-auto my-10 p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm relative">
-      
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
         <div>
           <h1 className="text-2xl font-bold mb-1 text-zinc-900 dark:text-zinc-100">Edit Produk</h1>
@@ -121,18 +133,22 @@ export default function EditProductForm({ initialData }: EditFormProps) {
             />
           </div>
 
-          {/* INJEKSI STOK: Mengubah grid menjadi 3 kolom */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Harga (Rp)</label>
+              {/* SHADOW INPUT TECHNIQUE */}
               <input
-                type="number"
-                name="price"
+                type="text"
+                value={priceDisplay}
+                onChange={handlePriceChange}
                 required
-                min="0"
-                defaultValue={initialData.price}
-                placeholder="15000"
+                placeholder="15.000"
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 disabled:cursor-not-allowed"
+              />
+              <input 
+                type="hidden" 
+                name="price" 
+                value={priceDisplay.replace(/\D/g, "")} 
               />
             </div>
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 import EditProductForm from "./form"
 
@@ -11,12 +12,16 @@ type Props = {
 
 export default async function EditProductPage({ params }: Props) {
   const { id } = await params
-  const cookieStore = await cookies()
-  const sellerId = cookieStore.get('seller_session')?.value
+  
+  // VALIDASI BARU
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) redirect('/seller/login')
 
-  if (!sellerId) {
-    redirect('/login')
-  }
+  const seller = await prisma.seller.findUnique({
+    where: { email: session.user.email },
+    select: { id: true }
+  })
+  if (!seller) redirect('/seller/login')
 
   const product = await prisma.product.findUnique({
     where: { id: id },
@@ -26,11 +31,10 @@ export default async function EditProductPage({ params }: Props) {
     },
   })
 
-  if (!product || product.sellerId !== sellerId) {
+  if (!product || product.sellerId !== seller.id) {
     redirect('/dashboard/products')
   }
 
-  // INJEKSI STOK KE DALAM FORMATTED DATA
   const formattedData = {
     id: product.id,
     productName: product.productName,

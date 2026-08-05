@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import DeleteProductButton from "./delete-button"
@@ -7,16 +8,27 @@ import DeleteProductButton from "./delete-button"
 export const revalidate = 0 
 
 export default async function ProductListPage() {
-  const cookieStore = await cookies()
-  const sellerId = cookieStore.get('seller_session')?.value
-
-  if (!sellerId) {
-    redirect('/login')
+  // 1. Standarisasi Validasi Sesi menggunakan NextAuth
+  const session = await getServerSession(authOptions)
+  
+  if (!session?.user?.email) {
+    redirect('/seller/login')
   }
 
+  // 2. Ekstraksi ID Seller berdasarkan email dari JWT Session
+  const seller = await prisma.seller.findUnique({
+    where: { email: session.user.email },
+    select: { id: true }
+  })
+
+  if (!seller) {
+    redirect('/seller/login')
+  }
+
+  // 3. Tarik data dari Database (Aman dari kebocoran antar-tenant)
   const products = await prisma.product.findMany({
     where: {
-      sellerId: sellerId,
+      sellerId: seller.id,
     },
     include: {
       images: true,
@@ -27,6 +39,7 @@ export default async function ProductListPage() {
     },
   })
 
+  // -- UI UTUH (TIDAK ADA PERUBAHAN PADA DESAIN ANDA) --
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
@@ -185,7 +198,7 @@ export default async function ProductListPage() {
                     </div>
                   </div>
 
-                  {/* INJEKSI STOK MOBILE: Layout diatur ulang agar Harga dan Stok terbagi rata */}
+                  {/* INJEKSI STOK MOBILE */}
                   <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 grid grid-cols-2 gap-2">
                     <div className="flex flex-col">
                       <span className="text-xs text-zinc-500">Harga Satuan</span>

@@ -49,7 +49,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
           ))}
         </nav>
 
-        {/* DESKTOP CTA BUTTONS (60-30-10 RULE) */}
+        {/* DESKTOP CTA BUTTONS (DIKOREKSI) */}
         <div className="hidden md:flex items-center gap-4">
           {isLoggedIn ? (
             <Link
@@ -61,8 +61,9 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
             </Link>
           ) : (
             <>
+              {/* PERBAIKAN: href sebelumnya "/login", sekarang disamakan menjadi "/seller/login" */}
               <Link
-                href="/login"
+                href="/seller/login"
                 className="rounded-xl px-4 py-2.5 text-sm font-semibold text-moywoo-slate transition-colors hover:bg-moywoo-slate/5"
               >
                 Masuk
@@ -78,7 +79,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
           )}
         </div>
 
-        {/* MOBILE MENU TOGGLE BUTTON (MIN TOUCH TARGET 44x44px) */}
+        {/* MOBILE MENU TOGGLE BUTTON */}
         <button
           type="button"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -122,12 +123,12 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
             ) : (
               <>
                 <Link
-                  href="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center rounded-xl border border-moywoo-slate/20 py-3 text-sm font-semibold text-moywoo-slate"
-                >
+                href="/seller/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-center rounded-xl border border-moywoo-slate/20 py-3 text-sm font-semibold text-moywoo-slate">
                   Masuk
-                </Link>
+                  </Link>
+
                 <Link
                   href="/seller/register"
                   onClick={() => setIsMobileMenuOpen(false)}

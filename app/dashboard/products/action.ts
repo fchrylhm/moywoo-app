@@ -1,31 +1,36 @@
 'use server'
 
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route" 
 
 export async function deleteProduct(productId: string) {
-  // 1. Validasi Autentikasi (Konsisten dengan alur login eksisting)
-  const cookieStore = await cookies()
-  const sellerId = cookieStore.get('seller_session')?.value
-
-  if (!sellerId) {
+  // 1. Validasi Autentikasi NextAuth
+  const session = await getServerSession(authOptions)
+  
+  if (!session?.user?.email) {
     throw new Error("Sesi tidak valid atau telah habis.")
   }
 
-  // 2. Proteksi Keamanan (IDOR Mitigation): 
-  // Pastikan produk yang akan dihapus BENAR-BENAR milik seller yang sedang login
+  const seller = await prisma.seller.findUnique({
+    where: { email: session.user.email },
+    select: { id: true }
+  })
+
+  if (!seller) throw new Error("Akun organisasi tidak ditemukan.")
+
+  // 2. Proteksi Keamanan (IDOR Mitigation)
   const product = await prisma.product.findUnique({
     where: { id: productId },
     select: { sellerId: true }
   })
 
-  if (!product || product.sellerId !== sellerId) {
+  if (!product || product.sellerId !== seller.id) {
     throw new Error("Akses ditolak: Anda tidak memiliki otoritas untuk menghapus produk ini.")
   }
 
   // 3. Transaksi Database Penghapusan (Atomic Operation)
-  // Mencegah fatal error akibat Foreign Key Constraint dengan menghapus gambar terlebih dahulu
   await prisma.$transaction([
     prisma.image.deleteMany({
       where: { productId: productId }
@@ -35,7 +40,7 @@ export async function deleteProduct(productId: string) {
     })
   ])
 
-  // 4. Purge Cache agar perubahan langsung terlihat di layar tanpa reload manual
+  // 4. Purge Cache
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/products')
 }

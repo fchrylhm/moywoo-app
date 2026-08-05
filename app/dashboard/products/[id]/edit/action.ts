@@ -2,36 +2,47 @@
 
 import { prisma } from "@/lib/prisma"
 import { supabase } from "@/lib/supabase"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
 export async function updateProduct(productId: string, formData: FormData) {
-  const cookieStore = await cookies()
-  const sellerId = cookieStore.get('seller_session')?.value
+  // 1. Ekstrak Sesi dari NextAuth (Menggantikan cookies manual)
+  const session = await getServerSession(authOptions)
 
-  if (!sellerId) {
+  if (!session?.user?.email) {
     throw new Error("Sesi telah berakhir. Silakan login kembali.")
   }
 
+  // 2. Tarik ID Seller berdasarkan email dari token JWT
+  const seller = await prisma.seller.findUnique({
+    where: { email: session.user.email },
+    select: { id: true }
+  })
+
+  if (!seller) {
+    throw new Error("Akses Ilegal: Akun organisasi tidak ditemukan.")
+  }
+
+  // 3. Verifikasi Otoritas Kepemilikan Produk (Mencegah modifikasi lintas-tenant)
   const existingProduct = await prisma.product.findUnique({
     where: { id: productId },
     select: { sellerId: true }
   })
 
-  if (!existingProduct || existingProduct.sellerId !== sellerId) {
+  if (!existingProduct || existingProduct.sellerId !== seller.id) {
     throw new Error("Akses ditolak: Anda tidak memiliki otoritas untuk memodifikasi produk ini.")
   }
 
+  // --- LOGIKA PEMROSESAN DATA DI BAWAH INI TETAP UTUH ---
   const productName = formData.get('productName') as string
   const priceInput = formData.get('price') as string
-  // INJEKSI STOK: Tangkap data stok dari form
   const stockInput = formData.get('stock') as string
   const categoryName = (formData.get('categoryName') as string) || "Umum"
   const description = formData.get('description') as string
   const imageFile = formData.get('image') as File | null
 
-  // Validasi tambahan untuk stok
   if (!productName || !priceInput || !stockInput) {
     throw new Error("Nama produk, harga, dan stok wajib diisi.")
   }
@@ -77,7 +88,6 @@ export async function updateProduct(productId: string, formData: FormData) {
     newImageUrl = publicUrlData.publicUrl
   }
 
-  // INJEKSI STOK: Masukkan variabel stock ke payload database
   const updatePayload: any = {
     productName,
     price,
@@ -98,6 +108,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     data: updatePayload
   })
 
+  // 4. Pembersihan Cache dan Redirect
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/products')
   revalidatePath(`/dashboard/products/${productId}`)

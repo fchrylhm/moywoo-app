@@ -14,40 +14,35 @@ export default function SellerLoginPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  e.preventDefault();
+  setError(null);
+  setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+  const formData = new FormData(e.currentTarget);
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-    try {
-      const res = await signIn("seller-login", {
-        redirect: false,
-        email,
-        password,
-      });
+  try {
+    const res = await signIn("seller-login", {
+      redirect: false,
+      email,
+      password,
+    });
 
-      if (res?.ok && !res.error) {
-        // 1. Paksa sinkronisasi status sesi Next.js di klien
-        router.refresh();
-        
-        // 2. Jeda mikro 300ms. Ini adalah kunci penyelesaiannya. 
-        // Memberikan waktu agar Cookie Token JWT tertanam di browser sebelum Middleware bekerja.
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 300);
-      } else {
-        setError("Kredensial Organisasi tidak valid.");
-        setLoading(false);
-      }
-    } catch (err: any) {
-      console.error("Submit Error:", err);
-      setError("Terjadi kesalahan koneksi ke server.");
+    if (res?.ok && !res.error) {
+      // PAKSA HARD NAVIGATE: Memastikan browser mengirim Cookie JWT yang baru ditanam ke Middleware Vercel
+      window.location.href = "/dashboard";
+    } else {
+      console.log("NextAuth Return Error:", res?.error);
+      setError("Kredensial Organisasi tidak valid.");
       setLoading(false);
     }
+  } catch (err: any) {
+    console.error("Submit Error:", err);
+    setError("Terjadi kesalahan koneksi ke server.");
+    setLoading(false);
   }
+}
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-moywoo-bg px-4 py-12 sm:px-6 lg:px-8 selection:bg-moywoo-blue selection:text-moywoo-slate">

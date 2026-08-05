@@ -5,92 +5,40 @@ import { redirect } from "next/navigation"
 
 export const revalidate = 0 
 
-export default async function DashboardPage() {
-  // 1. Ambil sesi secara resmi menggunakan NextAuth
+export default async function DashboardOverview() {
   const session = await getServerSession(authOptions)
   
-  // Proteksi Lapis 2: Jika tidak ada sesi, tendang ke login
-  if (!session?.user) {
-    redirect("/login")
-  }
+  if (!session?.user?.email) redirect('/seller/login')
 
-  // 2. Ekstrak ID Seller dari token JWT (sesuai mapping di route.ts)
-  const sellerId = (session.user as any).sellerld || (session.user as any).id
-
-  if (!sellerId) {
-    return (
-      <div className="flex h-screen items-center justify-center p-6 text-center">
-        <h1 className="text-xl font-bold text-red-500">
-          Akses Ditolak: Kredensial Organisasi Tidak Valid.
-        </h1>
-      </div>
-    )
-  }
-
-  // 3. Fetch Data berdasarkan ID yang tervalidasi
   const seller = await prisma.seller.findUnique({
-    where: { id: sellerId },
-    include: {
-      _count: {
-        select: { products: true }
-      }
-    },
+    where: { email: session.user.email },
+    select: { id: true, organizationName: true, fullName: true }
   })
 
-  if (!seller) {
-    return (
-      <div className="flex h-screen items-center justify-center p-6 text-center">
-        <h1 className="text-xl font-bold text-red-500">
-          Error: Data Organisasi tidak ditemukan di sistem.
-        </h1>
-      </div>
-    )
-  }
+  if (!seller) redirect('/seller/login')
+
+  // Hitung metrik sederhana untuk dashboard
+  const totalProducts = await prisma.product.count({
+    where: { sellerId: seller.id }
+  })
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            Overview {seller.organizationName || seller.fullName}
-          </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 mt-1 sm:mt-0">
-            Selamat datang di Merchant Center Moywoo. Berikut adalah ringkasan operasional Anda.
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+      <div className="pb-6 border-b border-zinc-200 dark:border-zinc-800">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          Selamat datang, {seller.organizationName || seller.fullName}
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          Ringkasan performa dan metrik katalog Anda.
+        </p>
       </div>
 
-      {/* Main Content: Metrics Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Card Metrik 1: Total Produk */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-center">
-          <h3 className="text-zinc-500 dark:text-zinc-400 text-sm font-medium mb-1">
-            Total Produk Aktif
-          </h3>
-          <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-            {seller._count.products}
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+          <h3 className="text-sm font-medium text-zinc-500 mb-2">Total Produk Aktif</h3>
+          <p className="text-4xl font-bold text-zinc-900 dark:text-zinc-100">{totalProducts}</p>
         </div>
-
-        {/* Card Metrik Placeholder */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 shadow-sm flex flex-col justify-center opacity-60">
-          <h3 className="text-zinc-500 dark:text-zinc-400 text-sm font-medium mb-1">
-            Total Transaksi
-          </h3>
-          <p className="text-xl font-semibold text-zinc-400 dark:text-zinc-600">
-            Segera Hadir
-          </p>
-        </div>
-        
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 shadow-sm flex flex-col justify-center opacity-60">
-          <h3 className="text-zinc-500 dark:text-zinc-400 text-sm font-medium mb-1">
-            Pendapatan Danusan
-          </h3>
-          <p className="text-xl font-semibold text-zinc-400 dark:text-zinc-600">
-            Segera Hadir
-          </p>
-        </div>
+        {/* Anda bisa menambahkan card metrik lain di sini nantinya (misal: Total Terjual) */}
       </div>
     </div>
   )

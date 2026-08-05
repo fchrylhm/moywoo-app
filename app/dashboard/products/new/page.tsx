@@ -4,41 +4,27 @@ import { useState, ChangeEvent, FormEvent, useRef } from "react"
 import { createProduct } from "./action"
 import Link from "next/link"
 
-// ============================================================================
-// UTILITAS KOMPRESI GAMBAR (CLIENT-SIDE CANVAS API)
-// ============================================================================
 async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<File> {
   if (file.size <= 1024 * 1024) return file;
-
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       const canvas = document.createElement("canvas");
       let { width, height } = img;
-
       if (width > maxWidth) {
         height = Math.round((height * maxWidth) / width);
         width = maxWidth;
       }
-
       canvas.width = width;
       canvas.height = height;
-
       const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        return reject(new Error("Gagal membuat konteks canvas browser."));
-      }
-
+      if (!ctx) return reject(new Error("Gagal membuat konteks canvas browser."));
       ctx.drawImage(img, 0, 0, width, height);
-
       canvas.toBlob(
         (blob) => {
-          if (!blob) {
-            return reject(new Error("Gagal mengompres gambar."));
-          }
+          if (!blob) return reject(new Error("Gagal mengompres gambar."));
           const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
             type: "image/jpeg",
             lastModified: Date.now(),
@@ -49,7 +35,6 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
         quality
       );
     };
-
     img.onerror = (error) => {
       URL.revokeObjectURL(objectUrl);
       reject(error);
@@ -58,9 +43,6 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
   });
 }
 
-// ============================================================================
-// TIPE DATA
-// ============================================================================
 type PreviewData = {
   productName: string
   price: string
@@ -69,9 +51,6 @@ type PreviewData = {
   description: string
 } | null
 
-// ============================================================================
-// KOMPONEN UTAMA
-// ============================================================================
 export default function NewProductPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [compressedFile, setCompressedFile] = useState<File | null>(null)
@@ -83,6 +62,20 @@ export default function NewProductPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [previewData, setPreviewData] = useState<PreviewData>(null)
   const pendingFormDataRef = useRef<FormData | null>(null)
+
+  // INJEKSI UX: State untuk menampung format tampilan harga
+  const [priceDisplay, setPriceDisplay] = useState("")
+
+  // INJEKSI UX: Handler format ribuan real-time
+  const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, "")
+    if (!rawValue) {
+      setPriceDisplay("")
+      return
+    }
+    const formatted = Number(rawValue).toLocaleString("id-ID")
+    setPriceDisplay(formatted)
+  }
 
   const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -133,7 +126,7 @@ export default function NewProductPage() {
 
     setPreviewData({
       productName: formData.get("productName") as string,
-      price: formData.get("price") as string,
+      price: formData.get("price") as string, // Akan mengambil nilai murni dari input hidden
       stock: formData.get("stock") as string,
       categoryName: formData.get("categoryName") as string,
       description: (formData.get("description") as string) || "Tidak ada deskripsi yang dilampirkan.",
@@ -162,8 +155,6 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-2xl mx-auto mt-6 mb-12 p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm relative">
-      
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
         <div>
           <h1 className="text-2xl font-bold mb-1 text-zinc-900 dark:text-zinc-100">Tambah Produk Baru</h1>
@@ -184,7 +175,6 @@ export default function NewProductPage() {
         </div>
       )}
 
-      {/* FORM UTAMA */}
       <form onSubmit={handlePreSubmit} className="space-y-5">
         <fieldset disabled={isSubmitting || isCompressing} className="space-y-5 group-disabled:opacity-60 transition-opacity">
           
@@ -201,19 +191,24 @@ export default function NewProductPage() {
             />
           </div>
 
-          {/* GRID DIREVISI MENJADI 3 KOLOM UNTUK MENGAKOMODASI STOK */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">
                 Harga (Rp) <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
               </label>
+              {/* SHADOW INPUT TECHNIQUE */}
               <input
-                type="number"
-                name="price"
+                type="text"
+                value={priceDisplay}
+                onChange={handlePriceChange}
                 required
-                min="0"
-                placeholder="15000"
+                placeholder="15.000"
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 disabled:cursor-not-allowed"
+              />
+              <input 
+                type="hidden" 
+                name="price" 
+                value={priceDisplay.replace(/\D/g, "")} 
               />
             </div>
 
@@ -258,15 +253,10 @@ export default function NewProductPage() {
 
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Foto Produk
-              </label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Foto Produk</label>
               <span className="text-red-500 font-bold" aria-hidden="true" title="Wajib diisi">*</span>
             </div>
-            
-            <p className="text-xs text-zinc-500 mb-2">
-              Unggah 1 foto terbaik untuk merepresentasikan produk Anda (Wajib).
-            </p>
+            <p className="text-xs text-zinc-500 mb-2">Unggah 1 foto terbaik (Wajib).</p>
 
             <div className="relative group">
               <input
@@ -317,7 +307,6 @@ export default function NewProductPage() {
         </fieldset>
       </form>
 
-      {/* MODAL KONFIRMASI (DI-UPDATE DENGAN DATA STOK) */}
       {showConfirmModal && previewData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-left">
