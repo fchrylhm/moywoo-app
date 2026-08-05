@@ -68,7 +68,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
                 Masuk
               </Link>
               <Link
-                href="/register"
+                href="/seller/register"
                 className="inline-flex items-center gap-2 rounded-xl bg-moywoo-orange px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-moywoo-orange/90 active:scale-95"
               >
                 Daftar Danusan
@@ -129,7 +129,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
                   Masuk
                 </Link>
                 <Link
-                  href="/register"
+                  href="/seller/register"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center justify-center gap-2 rounded-xl bg-moywoo-orange py-3 text-sm font-semibold text-white shadow-sm"
                 >

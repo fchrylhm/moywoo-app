@@ -1,63 +1,184 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
+  datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+  }
 
-generator client {
-  provider = "prisma-client-js"
-}
+  generator client {
+    provider = "prisma-client-js"
+  }
 
-enum Status {
-  DRAFT
-  PUBLISHED
-}
+  enum Status {
+    DRAFT
+    PUBLISHED
+  }
+
+  enum SimulationStatus {
+    SIMULATED
+    COMPLETED
+  }
+
+  enum VerificationStatus {
+    UNVERIFIED
+    PENDING
+    APPROVED
+    REJECTED
+  }
+
+  // =============================================================================
+  // NEXTAUTH MODELS (Khusus Buyer)
+  // =============================================================================
+
+  model Account {
+    id                String  @id @default(uuid())
+    buyerId           String  @map("buyer_id")
+    type              String
+    provider          String
+    providerAccountId String  @map("provider_account_id")
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+
+    buyer Buyer @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@map("accounts")
+  }
+
+  model Session {
+    id           String   @id @default(uuid())
+    sessionToken String   @unique @map("session_token")
+    buyerId      String   @map("buyer_id")
+    expires      DateTime
+    buyer        Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+    @@map("sessions")
+  }
+
+  model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+    @@map("verification_tokens")
+  }
+
+  // =============================================================================
+  // CORE BUSINESS MODELS
+  // =============================================================================
 
 model Seller {
-  id               String    @id @default(uuid())
-  fullName         String    @map("full_name")
-  email            String    @unique
-  password         String
-  organizationName String    @map("organization_name")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  products         Product[]
+  id                 String             @id @default(uuid())
+  fullName           String             @map("full_name")
+  email              String             @unique
+  password           String
+  whatsappNumber     String             @map("whatsapp_number") // Injeksi sukses
+  organizationName   String             @map("organization_name")
+  documentUrl        String?            @map("document_url") 
+  verificationStatus VerificationStatus @default(UNVERIFIED) @map("verification_status")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  
+  products           Product[]
 
-  @@map("sellers")
+  @@map("sellers") // Pertahankan integritas pemetaan tabel
 }
 
-model Category {
-  id           String    @id @default(uuid())
-  categoryName String    @map("category_name")
-  products     Product[]
+  model Buyer {
+    id            String    @id @default(uuid())
+    fullName      String?   @map("full_name")
+    email         String    @unique
+    emailVerified DateTime? @map("email_verified")
+    image         String?
+    password      String?   
+    createdAt     DateTime  @default(now()) @map("created_at")
 
-  @@map("categories")
-}
+    accounts         Account[]
+    sessions         Session[]
+    cart             Cart?
+    orderSimulations OrderSimulation[]
 
-model Product {
-  id          String   @id @default(uuid())
-  sellerId    String   @map("seller_id")
-  categoryId  String   @map("category_id")
-  productName String   @map("product_name")
-  description String?  @db.Text
-  price       Decimal  @db.Decimal(12, 2)
-  stock       Int      @default(0) // Kolom baru untuk melacak inventaris
-  status      Status   @default(PUBLISHED)
-  createdAt   DateTime @default(now()) @map("created_at")
+    @@map("buyers")
+  }
 
-  seller   Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id])
-  images   Image[]
+  model Category {
+    id           String    @id @default(uuid())
+    categoryName String    @map("category_name")
+    
+    products     Product[]
 
-  @@map("products")
-}
+    @@map("categories")
+  }
 
-model Image {
-  id         String   @id @default(uuid())
-  productId  String   @map("product_id")
-  imageUrl   String   @map("image_url")
-  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  model Product {
+    id          String   @id @default(uuid())
+    sellerId    String   @map("seller_id")
+    categoryId  String   @map("category_id")
+    productName String   @map("product_name")
+    description String?  @db.Text
+    price       Decimal  @db.Decimal(12, 2)
+    stock       Int      @default(0)
+    status      Status   @default(PUBLISHED)
+    createdAt   DateTime @default(now()) @map("created_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+    seller    Seller     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+    category  Category   @relation(fields: [categoryId], references: [id])
+    images    Image[]
+    cartItems CartItem[]
 
-  @@map("images")
-}
+    @@map("products")
+  }
+
+  model Image {
+    id         String   @id @default(uuid())
+    productId  String   @map("product_id")
+    imageUrl   String   @map("image_url")
+    uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+    product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+    @@map("images")
+  }
+
+  model Cart {
+    id        String   @id @default(uuid())
+    buyerId   String   @unique @map("buyer_id")
+    createdAt DateTime @default(now()) @map("created_at")
+
+    buyer            Buyer             @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+    items            CartItem[]
+    orderSimulations OrderSimulation[]
+
+    @@map("carts")
+  }
+
+  model CartItem {
+    id        String   @id @default(uuid())
+    cartId    String   @map("cart_id")
+    productId String   @map("product_id")
+    quantity  Int      @default(1)
+    addedAt   DateTime @default(now()) @map("added_at")
+
+    cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+    product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+    @@map("cart_items")
+  }
+
+  model OrderSimulation {
+    id          String           @id @default(uuid())
+    buyerId     String           @map("buyer_id")
+    cartId      String?          @map("cart_id") // Opsional agar bisa di-SetNull
+    totalPrice  Decimal          @map("total_price") @db.Decimal(12, 2)
+    status      SimulationStatus @default(SIMULATED)
+    simulatedAt DateTime         @default(now()) @map("simulated_at")
+
+    buyer Buyer @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+    cart  Cart? @relation(fields: [cartId], references: [id], onDelete: SetNull) // Taktik proteksi data analitik
+
+    @@map("order_simulations")
+  }

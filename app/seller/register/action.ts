@@ -7,14 +7,15 @@ export async function registerSeller(formData: FormData) {
   
   const fullName = (formData.get('fullName') as string)?.trim()
   const organizationName = (formData.get('organizationName') as string)?.trim()
+  const whatsappNumber = (formData.get('whatsappNumber') as string)?.trim()
   // Wajib disamakan dengan login: trim dan toLowerCase
   const email = (formData.get('email') as string)?.trim().toLowerCase()
   const password = formData.get('password') as string
 
-  console.log("=== 2. DATA DARI FORM ===", { fullName, organizationName, email })
+  console.log("=== 2. DATA DARI FORM ===", { fullName, organizationName, whatsappNumber, email })
 
-  if (!fullName || !organizationName || !email || !password) {
-    return { success: false, error: "Semua kolom wajib diisi." }
+  if (!fullName || !organizationName || !whatsappNumber || !email || !password) {
+    return { success: false, error: "Semua kolom wajib diisi termasuk nomor WhatsApp." }
   }
 
   try {
@@ -22,6 +23,7 @@ export async function registerSeller(formData: FormData) {
       data: {
         fullName,
         organizationName,
+        whatsappNumber, // Injeksi data WhatsApp ke database
         email,
         password,
       },

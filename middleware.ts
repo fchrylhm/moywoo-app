@@ -1,38 +1,40 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
-  const response = NextResponse.next()
-  const { pathname } = request.nextUrl
+export default withAuth(
+  function middleware(req) {
+    const token = req.nextauth.token;
+    const path = req.nextUrl.pathname;
 
-  // 1. Ambil cookie 'seller_session' yang diset oleh loginSeller di action.ts
-  const sellerSession = request.cookies.get('seller_session')?.value
+    const isSeller = !!token?.sellerId || token?.role === "seller"; 
 
-  // 2. PROTEKSI AREA DASHBOARD: Jika akses /dashboard tanpa session -> lempar ke /login
-  if (pathname.startsWith('/dashboard')) {
-    if (!sellerSession) {
-      const loginUrl = new URL('/login', request.url)
-      return NextResponse.redirect(loginUrl)
+    // PROTEKSI 1: Mahasiswa/Buyer dilarang masuk ke area organisasi
+    if (path.startsWith("/dashboard") && !isSeller) {
+      return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Matikan total browser bfcache & cache memory untuk area terproteksi
-    response.headers.set(
-      'Cache-Control',
-      'no-store, no-cache, must-revalidate, proxy-revalidate'
-    )
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
-  }
+    // PROTEKSI 2: Organisasi tidak perlu mengakses keranjang belanja pembeli
+    if (path.startsWith("/cart") && isSeller) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
 
-  // 3. PROTEKSI AREA LOGIN: Jika sudah login tapi buka /login -> lempar ke /dashboard
-  if (pathname === '/login' && sellerSession) {
-    const dashboardUrl = new URL('/dashboard', request.url)
-    return NextResponse.redirect(dashboardUrl)
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token, 
+    },
+    pages: {
+      signIn: "/login",
+    },
+    // INJEKSI FATAL: Memaksa Edge Runtime untuk mengetahui kunci dekripsi token
+    secret: process.env.NEXTAUTH_SECRET,
   }
-
-  return response
-}
+);
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login'],
-}
+  matcher: [
+    "/dashboard/:path*",
+    "/cart/:path*",
+  ],
+};

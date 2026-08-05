@@ -2,17 +2,22 @@
 
 import { prisma } from "@/lib/prisma"
 import { supabase } from "@/lib/supabase"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { getServerSession } from "next-auth"
+// Pastikan path import authOptions di bawah ini sesuai dengan struktur folder Anda
+import { authOptions } from "@/app/api/auth/[...nextauth]/route" 
 
 export async function createProduct(formData: FormData) {
-  // 1. Cek Cookie Session (Cepat & Sinkron dengan alur login sebelumnya)
-  const cookieStore = await cookies()
-  const sellerId = cookieStore.get('seller_session')?.value
+  // 1. Ekstrak Sesi dari NextAuth (Menggantikan manual cookie)
+  const session = await getServerSession(authOptions)
 
-  if (!sellerId) {
-    throw new Error("Sesi telah berakhir. Silakan login kembali.")
+  // Validasi absolut: Hanya user yang login DAN memiliki role 'seller' yang diizinkan
+  if (!session || (session.user as any).role !== "seller") {
+    throw new Error("Akses Ilegal. Sesi tidak valid atau otorisasi ditolak.")
   }
+
+  // Ambil ID langsung dari token sesi server yang mustahil dimanipulasi dari frontend
+  const sellerId = session.user.id
 
   // 2. Ambil & Validasi Data Form
   const productName = formData.get('productName') as string
@@ -34,8 +39,7 @@ export async function createProduct(formData: FormData) {
   ])
 
   if (!seller) {
-    cookieStore.delete('seller_session')
-    throw new Error("Akun penjual tidak ditemukan di database. Silakan register/login ulang.")
+    throw new Error("Akun organisasi tidak ditemukan di database. Integritas data bermasalah.")
   }
 
   // 4. Persiapan buffer gambar

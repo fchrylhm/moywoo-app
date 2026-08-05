@@ -4,11 +4,11 @@ import { cookies } from "next/headers"
 export const revalidate = 0 
 
 export default async function DashboardPage() {
-  // 1. Ambil ID dari sesi
+  // 1. Ambil ID dari sesi 
   const cookieStore = await cookies()
   const sellerId = cookieStore.get('seller_session')!.value
 
-  // 2. Fetch Data: Kita hanya butuh profil dan JUMLAH produk untuk Overview, bukan seluruh datanya.
+  // 2. Fetch Data: Kita hanya butuhojju-0iu9858u909oduk untuk Overview, bukan seluruh datanya.
   const seller = await prisma.seller.findUnique({
     where: { id: sellerId },
     include: {

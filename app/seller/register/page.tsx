@@ -24,8 +24,8 @@ export default function RegisterPage() {
         setError(result.error || "Gagal mendaftarkan akun.");
         setLoading(false);
       } else {
-        // Hard navigation untuk memutus state loading & reset memori browser
-        window.location.href = "/login";
+        // Arahkan tepat ke halaman login khusus Seller/Organisasi
+        window.location.href = "/seller/login";
       }
     } catch (err) {
       console.error("Register error:", err);
@@ -107,6 +107,20 @@ export default function RegisterPage() {
             />
           </div>
 
+          {/* INPUT NOMOR WHATSAPP (INJEKSI BARU) */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-moywoo-slate">
+              Nomor WhatsApp
+            </label>
+            <input
+              type="text"
+              name="whatsappNumber"
+              required
+              placeholder="Contoh: 081234567890"
+              className="w-full h-12 rounded-xl border border-moywoo-slate/20 bg-white px-4 text-sm text-moywoo-slate placeholder:text-moywoo-slate/40 focus:border-moywoo-blue focus:outline-none focus:ring-2 focus:ring-moywoo-blue/30 transition-all"
+            />
+          </div>
+
           {/* INPUT EMAIL */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-moywoo-slate">
@@ -170,7 +184,7 @@ export default function RegisterPage() {
         <p className="mt-8 text-center text-sm text-moywoo-slate/75">
           Sudah memiliki akun?{" "}
           <Link
-            href="/login"
+            href="/seller/login"
             className="font-bold text-moywoo-orange hover:underline"
           >
             Masuk di Sini
