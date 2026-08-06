@@ -56,13 +56,13 @@ export default function RegisterBuyerPage() {
       <div className="w-full max-w-md rounded-2xl border border-moywoo-slate/10 bg-white p-6 sm:p-8 shadow-sm">
         <div className="text-center space-y-3 mb-8">
           <Image
-            src="/Logo-Moywoo.png"
-            alt="Moywoo Logo"
-            width={120}
-            height={36}
-            priority
-            className="h-8 w-auto mx-auto object-contain"
-          />
+          src="/logo-moywoo.png" // <-- Pastikan huruf kecil semua
+          alt="Moywoo Logo"
+          width={120}
+          height={36}
+          priority
+          className="h-8 md:h-9 w-auto object-contain"
+                    />
           <h1 className="text-2xl font-bold text-moywoo-slate">Daftar sebagai Pembeli</h1>
           <p className="text-sm text-moywoo-slate/75">
             Buat akun untuk mulai memesan usaha dana

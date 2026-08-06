@@ -28,12 +28,12 @@ export default function Navbar({ userRole = null }: NavbarProps) {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16 md:h-20">
         <Link href="/" className="flex items-center gap-2 focus:outline-none rounded-lg" onClick={closeMenu}>
           <Image
-            src="/Logo-Moywoo.png"
-            alt="Moywoo Logo"
-            width={120}
-            height={36}
-            priority
-            className="h-8 md:h-9 w-auto object-contain"
+          src="/logo-moywoo.png" // <-- Pastikan huruf kecil semua
+          alt="Moywoo Logo"
+          width={120}
+          height={36}
+          priority
+          className="h-8 md:h-9 w-auto object-contain"
           />
         </Link>
 

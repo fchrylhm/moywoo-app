@@ -62,13 +62,13 @@ export default function SellerLoginPage() {
         <div className="text-center space-y-3 mb-8">
           <Link href="/" className="inline-block">
             <Image
-              src="/Logo-Moywoo.png"
-              alt="Moywoo Logo"
-              width={120}
-              height={36}
-              priority
-              className="h-8 w-auto mx-auto object-contain"
-            />
+                      src="/logo-moywoo.png" // <-- Pastikan huruf kecil semua
+                      alt="Moywoo Logo"
+                      width={120}
+                      height={36}
+                      priority
+                      className="h-8 md:h-9 w-auto object-contain"
+                      />
           </Link>
           <h1 className="text-2xl font-bold text-moywoo-slate">
             Portal Organisasi
