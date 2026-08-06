@@ -1,30 +1,32 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google"; // Menggunakan Inter untuk estetika geometris modern
+import { Inter } from "next/font/google";
 import "./globals.css";
-import AuthProvider from "@/components/providers/AuthProvider";
+import Navbar from "@/components/navbar";
+import { getServerSession } from "next-auth";
+import { authOptions } from "./api/auth/[...nextauth]/route";
 
-// Inisialisasi font tanpa perlu variabel config
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Moywoo — Platform Manajemen Usaha Danusan Kampus",
-  description:
-    "Kelola katalog produk, pesanan, dan keuangan usaha danusan organisasi kampus dengan mudah, transparan, dan terstruktur bersama Moywoo.",
-  icons: {
-    icon: "/favicon.ico",
-  },
+  title: "Moywoo MVP",
+  description: "Marketplace Usaha Dana Organisasi Mahasiswa",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession(authOptions);
+  
   return (
-    <html lang="id" className={`${inter.className} h-full antialiased`}>
-      {/* Hapus pemanggilan font-sans Tailwind, biarkan Inter mengambil alih secara absolut */}
-      <body className="min-h-full flex flex-col bg-moywoo-bg text-moywoo-slate selection:bg-[#A0D6FE] selection:text-[#355872]">
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="id">
+      <body className={`${inter.className} bg-zinc-50 min-h-screen text-zinc-900`}>
+        {/* Navbar Global (Satu-satunya sumber kebenaran) */}
+        <Navbar userRole={(session?.user as { role?: "SELLER" | "BUYER" })?.role || null} />
+        
+        {/* KOREKSI: Pembungkus max-w-7xl dilepas agar landing page bisa edge-to-edge */}
+        {children}
       </body>
     </html>
   );

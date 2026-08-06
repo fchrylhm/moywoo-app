@@ -3,29 +3,30 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X, ArrowRight, ShoppingBag, User, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 interface NavbarProps {
-  isLoggedIn?: boolean;
+  userRole?: "SELLER" | "BUYER" | null;
 }
 
-export default function Navbar({ isLoggedIn = false }: NavbarProps) {
+export default function Navbar({ userRole = null }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isLoggedIn = userRole !== null;
 
   const navLinks = [
-    { name: "Fitur", href: "#fitur" },
-    { name: "Cara Kerja", href: "#cara-kerja" },
-    { name: "Keunggulan", href: "#keunggulan" },
+    { name: "Fitur", href: "/#fitur" },
+    { name: "Cara Kerja", href: "/#cara-kerja" },
+    { name: "Keunggulan", href: "/#keunggulan" },
   ];
 
+  // Fungsi utilitas untuk menutup menu mobile setelah navigasi ditekan
+  const closeMenu = () => setIsMobileMenuOpen(false);
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-moywoo-slate/10 bg-moywoo-bg/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-200/50 bg-[#F7F8F0]/90 dark:bg-zinc-950/90 backdrop-blur-md transition-colors">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16 md:h-20">
-        {/* LOGO BRANDING */}
-        <Link
-          href="/"
-          className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-moywoo-blue rounded-lg"
-        >
+        <Link href="/" className="flex items-center gap-2 focus:outline-none rounded-lg" onClick={closeMenu}>
           <Image
             src="/Logo-Moywoo.png"
             alt="Moywoo Logo"
@@ -36,110 +37,123 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
           />
         </Link>
 
-        {/* DESKTOP NAVIGATION LINKS */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-moywoo-slate/80">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              className="transition-colors hover:text-moywoo-orange focus:outline-none"
-            >
+        {/* DESKTOP NAVIGATION */}
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+          {userRole !== "BUYER" && navLinks.map((link) => (
+            <Link key={link.name} href={link.href} className="transition-colors hover:text-[#E47632]">
               {link.name}
             </Link>
           ))}
+          {userRole === "BUYER" && (
+            <Link href="/catalog" className="transition-colors hover:text-[#E47632] font-semibold">
+              Katalog Produk
+            </Link>
+          )}
         </nav>
 
-        {/* DESKTOP CTA BUTTONS (DIKOREKSI) */}
+        {/* DESKTOP CTA BUTTONS */}
         <div className="hidden md:flex items-center gap-4">
           {isLoggedIn ? (
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-xl bg-moywoo-orange px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-moywoo-orange/90 active:scale-95"
-            >
-              Ke Dashboard
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            userRole === "SELLER" ? (
+              <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-xl bg-[#E47632] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#c96222] active:scale-95">
+                Dashboard Mitra <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link href="/cart" className="p-2.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-[#E47632] transition-colors">
+                  <ShoppingBag className="h-5 w-5" />
+                </Link>
+                <Link href="/profile" className="p-2.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-[#E47632] transition-colors">
+                  <User className="h-5 w-5" />
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="p-2.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                  title="Keluar"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </div>
+            )
           ) : (
             <>
-              {/* PERBAIKAN: href sebelumnya "/login", sekarang disamakan menjadi "/seller/login" */}
-              <Link
-                href="/seller/login"
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-moywoo-slate transition-colors hover:bg-moywoo-slate/5"
-              >
+              <Link href="/seller/login" className="rounded-xl px-4 py-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                 Masuk
               </Link>
-              <Link
-                href="/seller/register"
-                className="inline-flex items-center gap-2 rounded-xl bg-moywoo-orange px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-moywoo-orange/90 active:scale-95"
-              >
-                Daftar Danusan
-                <ArrowRight className="h-4 w-4" />
+              <Link href="/seller/register" className="inline-flex items-center gap-2 rounded-xl bg-[#E47632] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#c96222] active:scale-95">
+                Daftar Danusan <ArrowRight className="h-4 w-4" />
               </Link>
             </>
           )}
         </div>
 
         {/* MOBILE MENU TOGGLE BUTTON */}
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="inline-flex md:hidden items-center justify-center rounded-xl p-2.5 text-moywoo-slate transition-colors hover:bg-moywoo-slate/5 focus:outline-none"
-          aria-label="Toggle Menu"
+        <button 
+          type="button" 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+          className="inline-flex md:hidden items-center justify-center rounded-xl p-2.5 text-zinc-700 hover:bg-zinc-100 transition-colors"
         >
-          {isMobileMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
+          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
-      {/* MOBILE DRAWER NAVIGATION */}
+      {/* MOBILE MENU RENDER BLOCK */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-b border-moywoo-slate/10 bg-moywoo-bg px-4 pt-2 pb-6 space-y-4">
-          <nav className="flex flex-col gap-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="rounded-lg px-3 py-2 text-base font-medium text-moywoo-slate/90 hover:bg-moywoo-slate/5"
-              >
+        <div className="md:hidden absolute top-[100%] left-0 w-full border-b border-zinc-200 bg-white shadow-xl px-4 py-6 flex flex-col gap-6 animate-in slide-in-from-top-2 duration-200">
+          
+          {/* Mobile Nav Links */}
+          <nav className="flex flex-col gap-4 text-base font-medium text-zinc-600">
+            {userRole !== "BUYER" && navLinks.map((link) => (
+              <Link key={link.name} href={link.href} onClick={closeMenu} className="hover:text-[#E47632] transition-colors">
                 {link.name}
               </Link>
             ))}
+            {userRole === "BUYER" && (
+              <Link href="/catalog" onClick={closeMenu} className="hover:text-[#E47632] font-semibold">
+                Katalog Produk
+              </Link>
+            )}
           </nav>
 
-          <div className="flex flex-col gap-2.5 pt-4 border-t border-moywoo-slate/10">
+          <hr className="border-zinc-100" />
+
+          {/* Mobile CTA Buttons */}
+          <div className="flex flex-col gap-3">
             {isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-xl bg-moywoo-orange py-3 text-sm font-semibold text-white shadow-sm"
-              >
-                Ke Dashboard
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              userRole === "SELLER" ? (
+                <>
+                  <Link href="/dashboard" onClick={closeMenu} className="w-full flex justify-center items-center gap-2 rounded-xl bg-[#E47632] px-5 py-3.5 text-sm font-semibold text-white transition-all hover:bg-[#c96222]">
+                    Dashboard Mitra <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <button onClick={() => { closeMenu(); signOut({ callbackUrl: "/login" }); }} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-50 text-red-600 px-5 py-3.5 text-sm font-semibold border border-red-200">
+                    <LogOut className="h-4 w-4" /> Keluar
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/cart" onClick={closeMenu} className="w-full flex items-center gap-3 rounded-xl bg-zinc-50 px-5 py-3.5 text-sm font-semibold text-zinc-900 border border-zinc-200">
+                    <ShoppingBag className="h-5 w-5 text-zinc-500" /> Keranjang Belanja
+                  </Link>
+                  <Link href="/profile" onClick={closeMenu} className="w-full flex items-center gap-3 rounded-xl bg-zinc-50 px-5 py-3.5 text-sm font-semibold text-zinc-900 border border-zinc-200">
+                    <User className="h-5 w-5 text-zinc-500" /> Profil Pengguna (Segera)
+                  </Link>
+                  <button onClick={() => { closeMenu(); signOut({ callbackUrl: "/login" }); }} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-50 text-red-600 px-5 py-3.5 text-sm font-semibold border border-red-100 mt-2">
+                    <LogOut className="h-4 w-4" /> Keluar dari Akun
+                  </button>
+                </>
+              )
             ) : (
               <>
-                <Link
-                href="/seller/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center rounded-xl border border-moywoo-slate/20 py-3 text-sm font-semibold text-moywoo-slate">
+                <Link href="/seller/login" onClick={closeMenu} className="w-full flex justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-sm font-semibold text-zinc-700">
                   Masuk
-                  </Link>
-
-                <Link
-                  href="/seller/register"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-moywoo-orange py-3 text-sm font-semibold text-white shadow-sm"
-                >
-                  Daftar Danusan
-                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/seller/register" onClick={closeMenu} className="w-full flex justify-center items-center gap-2 rounded-xl bg-[#E47632] px-5 py-3.5 text-sm font-semibold text-white">
+                  Daftar Danusan <ArrowRight className="h-4 w-4" />
                 </Link>
               </>
             )}
           </div>
+
         </div>
       )}
     </header>

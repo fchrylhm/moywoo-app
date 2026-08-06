@@ -1,121 +1,139 @@
-'use server'
+"use server";
 
-import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { revalidatePath } from "next/cache"
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { revalidatePath } from "next/cache";
 
-// Utility Pembersih & Formatter Nomor WhatsApp
-function formatWaNumber(phone: string): string {
-  let cleaned = phone.replace(/\D/g, '') // Hapus karakter non-digit
-  if (cleaned.startsWith('0')) {
-    cleaned = '62' + cleaned.substring(1)
-  }
-  return cleaned
-}
-
-// ACTION 1: CHECKOUT PER SELLER
-export async function checkoutSellerGroup(sellerId: string) {
-  const session = await getServerSession(authOptions)
-
-  if (!session || !session.user || (session.user as any).role !== "buyer") {
-    return { error: "Silakan login menggunakan akun pembeli." }
-  }
-
-  const buyerId = session.user.id
-
+export async function updateItemQuantity(itemId: string, newQuantity: number) {
   try {
-    // 1. Ambil Keranjang Pembeli beserta item khusus dari Seller ini
-    const cart = await prisma.cart.findUnique({
-      where: { buyerId },
-      include: {
-        items: {
-          where: { product: { sellerId } },
-          include: {
-            product: {
-              include: { seller: true }
-            }
-          }
-        }
-      }
-    })
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
 
-    if (!cart || cart.items.length === 0) {
-      return { error: "Item tidak ditemukan di keranjang." }
+    if (!session || user?.role !== "BUYER") {
+      return { success: false, message: "Akses ditolak." };
     }
 
-    const items = cart.items
-    const seller = items[0].product.seller
-    const buyerName = session.user.name || "Mahasiswa"
+    if (newQuantity < 1) {
+      return { success: false, message: "Kuantitas minimal adalah 1." };
+    }
 
-    // 2. Hitung Total Pembayaran
-    let total = 0
-    let itemDetailsText = ""
+    // Ambil item beserta stok produk aslinya
+    const cartItem = await prisma.cartItem.findUnique({
+      where: { id: itemId },
+      include: { product: { select: { stock: true } } }
+    });
 
-    items.forEach((item, index) => {
-      const subtotal = Number(item.product.price) * item.quantity
-      total += subtotal
-      itemDetailsText += `${index + 1}. *${item.product.productName}* (${item.quantity}x) = Rp${subtotal.toLocaleString('id-ID')}\n`
-    })
+    if (!cartItem) return { success: false, message: "Item tidak ditemukan." };
 
-    // 3. Rakit Format Pesan WhatsApp
-    const rawMessage = 
-`Halo *${seller.organizationName}*,
-Saya *${buyerName}* ingin memesan produk berikut via Moywoo:
+    // Validasi pencegahan Race Condition & eksploitasi UI
+    if (newQuantity > cartItem.product.stock) {
+      return { success: false, message: `Gagal. Sisa stok hanya ${cartItem.product.stock}.` };
+    }
 
-${itemDetailsText}
-*Total Pembayaran: Rp${total.toLocaleString('id-ID')}*
-
-Mohon konfirmasi ketersediaan stok dan instruksi pembayarannya. Terima kasih!`
-
-    const encodedMessage = encodeURIComponent(rawMessage)
-    const formattedPhone = formatWaNumber(seller.whatsappNumber)
-    const waLink = `https://wa.me/${formattedPhone}?text=${encodedMessage}`
-
-    // 4. HAPUS PERMANEN Item dari Keranjang untuk Seller ini
-    await prisma.cartItem.deleteMany({
-      where: {
-        cartId: cart.id,
-        product: { sellerId }
-      }
-    })
-
-    revalidatePath('/cart')
-    return { success: true, waLink }
-
-  } catch (error) {
-    console.error("Checkout Error:", error)
-    return { error: "Gagal memproses checkout." }
-  }
-}
-
-// ACTION 2: UPDATE QUANTITY ITEM
-export async function updateCartItemQuantity(itemId: string, newQuantity: number) {
-  if (newQuantity <= 0) {
-    return deleteCartItem(itemId)
-  }
-
-  try {
     await prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity: newQuantity }
-    })
-    revalidatePath('/cart')
-    return { success: true }
+    });
+
+    revalidatePath("/cart");
+    return { success: true, message: "Kuantitas diperbarui." };
   } catch (error) {
-    return { error: "Gagal memperbarui kuantitas." }
+    return { success: false, message: "Terjadi kesalahan sistem." };
   }
 }
 
-// ACTION 3: HAPUS INDIVIDUAL ITEM
-export async function deleteCartItem(itemId: string) {
+export async function removeCartItem(itemId: string) {
   try {
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
+
+    if (!session || user?.role !== "BUYER") {
+      return { success: false, message: "Akses ditolak." };
+    }
+
     await prisma.cartItem.delete({
       where: { id: itemId }
-    })
-    revalidatePath('/cart')
-    return { success: true }
+    });
+
+    revalidatePath("/cart");
+    return { success: true, message: "Item dihapus dari keranjang." };
   } catch (error) {
-    return { error: "Gagal menghapus item." }
+    return { success: false, message: "Gagal menghapus item." };
+  }
+}
+
+// ... (biarkan fungsi updateItemQuantity dan removeCartItem yang sudah ada di atas)
+
+export async function simulateCheckout() {
+  try {
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
+
+    if (!session || user?.role !== "BUYER") {
+      return { success: false, message: "Akses ditolak. Sesi tidak valid." };
+    }
+
+    // Eksekusi Interactive Transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Tarik keranjang dan item beserta relasi produknya
+      const cart = await tx.cart.findUnique({
+        where: { buyerId: user.id },
+        include: { 
+          items: { 
+            include: { product: true } 
+          } 
+        }
+      });
+
+      if (!cart || cart.items.length === 0) {
+        throw new Error("Keranjang Anda kosong.");
+      }
+
+      let serverCalculatedTotal = 0;
+
+      // 2. Validasi stok aktual & Kalkulasi harga yang aman di Server
+      for (const item of cart.items) {
+        if (item.product.stock < item.quantity) {
+          throw new Error(`Stok untuk produk ${item.product.productName} tidak mencukupi (Sisa: ${item.product.stock}).`);
+        }
+
+        // Kalkulasi: Harga Prisma (Decimal) dikonversi dengan aman
+        serverCalculatedTotal += (Number(item.product.price) * item.quantity);
+
+        // 3. Kurangi stok produk secara presisi
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
+
+      // 4. Rekam simulasi pesanan
+      await tx.orderSimulation.create({
+        data: {
+          buyerId: user.id,
+          cartId: cart.id, // Sesuai skema Anda, ini opsional tapi baik untuk dihubungkan
+          totalPrice: serverCalculatedTotal,
+          status: "SIMULATED" // Status bawaan dari ENUM Anda
+        }
+      });
+
+      // 5. Bersihkan keranjang (Hapus semua CartItem yang terhubung dengan cartId ini)
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id }
+      });
+
+      return { success: true };
+    });
+
+    revalidatePath("/cart");
+    revalidatePath("/catalog"); // Segarkan katalog agar stok terbaru langsung terefleksi
+    
+    return { success: true, message: "Simulasi pesanan berhasil! Keranjang telah dikosongkan." };
+
+  } catch (error: any) {
+    console.error("Kesalahan Sistem Checkout:", error);
+    // Menangkap pesan spesifik dari Error yang kita lempar di dalam transaksi
+    return { success: false, message: error.message || "Gagal memproses pesanan." };
   }
 }

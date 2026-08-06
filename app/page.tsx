@@ -1,11 +1,29 @@
 import Navbar from "@/components/navbar"
 import Link from "next/link"
 import { ArrowRight, PackageOpen, TrendingUp, Zap, ShieldCheck, CheckCircle2 } from "lucide-react"
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+// 1. Tambahkan import redirect
+import { redirect } from "next/navigation"; 
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as any)?.role || null;
+
+  // 2. INJEKSI LOGIKA PENJAGA GERBANG
+  // Jika mereka sudah punya kunci masuk, tendang mereka ke ruangannya masing-masing
+  if (role === "BUYER") {
+    redirect("/catalog");
+  }
+  
+  if (role === "SELLER") {
+    redirect("/dashboard");
+  }
+
+// 3. Jika tidak ada sesi (Guest murni), barulah render halaman landing ini
   return (
     <div className="min-h-screen bg-[#F7F8F0] dark:bg-zinc-950 font-sans scroll-smooth">
-      <Navbar isLoggedIn={false} />
+      {/* KOREKSI: Navbar dihapus dari sini karena sudah dirender oleh layout.tsx */}
       
       {/* HERO SECTION */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-20 text-center">

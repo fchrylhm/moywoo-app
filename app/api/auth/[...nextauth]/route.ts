@@ -7,77 +7,100 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   providers: [
+    // ==============================================================================
+    // PROVIDER 1: PINTU KHUSUS SELLER
+    // ==============================================================================
     CredentialsProvider({
-      id: "seller-login", // Ditetapkan eksplisit agar cocok jika frontend memanggil "seller-login"
-      name: "Credentials",
+      id: "seller-login",
+      name: "Seller Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("--- PROSES LOGIN SELLER DIMULAI ---");
-        
-        if (!credentials?.email || !credentials?.password) {
-          console.log("DIAGNOSTIK: Email atau password kosong dari Form Input.");
-          return null;
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         const cleanEmail = credentials.email.trim();
         const cleanPassword = credentials.password.trim();
 
         try {
-          // 1. Cari Seller di Database
           const seller = await prisma.seller.findUnique({
             where: { email: cleanEmail },
           });
 
-          if (!seller) {
-            console.log(`DIAGNOSTIK: Email '${cleanEmail}' TIDAK DITEMUKAN di tabel 'sellers' Supabase.`);
-            return null;
-          }
+          if (!seller || seller.password.trim() !== cleanPassword) return null;
 
-          console.log(`DIAGNOSTIK: Seller ditemukan. Email: ${seller.email}`);
-
-          // 2. Evaluasi Kata Sandi (Plain-text)
-          const isPasswordMatch = seller.password.trim() === cleanPassword;
-
-          if (!isPasswordMatch) {
-            console.log("DIAGNOSTIK: Password TIDAK COCOK!");
-            console.log(`Input Form: '${cleanPassword}' | Di Database: '${seller.password}'`);
-            return null;
-          }
-
-          console.log("DIAGNOSTIK: Login BERHASIL!");
+          // INJEKSI ROLE: SELLER
           return {
             id: seller.id,
             email: seller.email,
             name: seller.fullName,
+            role: "SELLER", 
           };
         } catch (error) {
-          console.error("DIAGNOSTIK FATAL (Koneksi DB Gagal):", error);
+          console.error("Database Error (Seller Auth):", error);
+          return null;
+        }
+      },
+    }),
+
+    // ==============================================================================
+    // PROVIDER 2: PINTU KHUSUS BUYER
+    // ==============================================================================
+    CredentialsProvider({
+      id: "buyer-login",
+      name: "Buyer Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        const cleanEmail = credentials.email.trim();
+        const cleanPassword = credentials.password.trim();
+
+        try {
+          const buyer = await prisma.buyer.findUnique({
+            where: { email: cleanEmail },
+          });
+
+          if (!buyer || buyer.password?.trim() !== cleanPassword) return null;
+
+          // INJEKSI ROLE: BUYER
+          return {
+            id: buyer.id,
+            email: buyer.email,
+            name: buyer.fullName,
+            role: "BUYER",
+          };
+        } catch (error) {
+          console.error("Database Error (Buyer Auth):", error);
           return null;
         }
       },
     }),
   ],
   callbacks: {
+    // Menangkap 'role' dari fungsi authorize dan menanamkannya ke dalam token
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.role = (user as any).role;
       }
       return token;
     },
+    // Mengekspos 'role' dan 'id' ke frontend dan server actions
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
       }
       return session;
     },
   },
-  pages: {
-    signIn: "/seller/login",
-    error: "/seller/login",
-  },
+  // KUNCI PENTING: Hapus konfigurasi 'pages: { signIn: "/seller/login" }'
+  // Biarkan middleware.ts yang menjadi satpam tunggal untuk mengatur arah lemparan rute.
   secret: process.env.NEXTAUTH_SECRET,
 };
 
