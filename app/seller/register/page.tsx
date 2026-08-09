@@ -18,13 +18,21 @@ export default function RegisterPage() {
 
     try {
       const formData = new FormData(e.currentTarget);
+      
+      // Keamanan ekstra di sisi klien sebelum membebani server
+      const password = formData.get("password") as string;
+      if (password.length < 8) {
+        setError("Kata sandi harus memiliki minimal 8 karakter.");
+        setLoading(false);
+        return;
+      }
+
       const result = await registerSeller(formData);
 
       if (!result.success) {
         setError(result.error || "Gagal mendaftarkan akun.");
         setLoading(false);
       } else {
-        // Arahkan tepat ke halaman login khusus Seller/Organisasi
         window.location.href = "/seller/login";
       }
     } catch (err) {
@@ -53,13 +61,13 @@ export default function RegisterPage() {
         <div className="text-center space-y-3 mb-8">
           <Link href="/" className="inline-block">
             <Image
-                      src="/logo-moywoo.png" // <-- Pastikan huruf kecil semua
-                      alt="Moywoo Logo"
-                      width={120}
-                      height={36}
-                      priority
-                      className="h-8 md:h-9 w-auto object-contain"
-                      />
+              src="/logo-moywoo.png"
+              alt="Moywoo Logo"
+              width={120}
+              height={36}
+              priority
+              className="h-8 md:h-9 w-auto object-contain"
+            />
           </Link>
           <h1 className="text-2xl font-bold text-moywoo-slate">
             Daftar Akun Organisasi
@@ -79,7 +87,6 @@ export default function RegisterPage() {
 
         {/* FORM REGISTRASI */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* INPUT NAMA LENGKAP */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-moywoo-slate">
               Nama Lengkap
@@ -93,7 +100,6 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* INPUT NAMA ORGANISASI */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-moywoo-slate">
               Nama Organisasi
@@ -107,7 +113,6 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* INPUT NOMOR WHATSAPP (INJEKSI BARU) */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-moywoo-slate">
               Nomor WhatsApp
@@ -121,7 +126,6 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* INPUT EMAIL */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-moywoo-slate">
               Email Organisasi
@@ -135,7 +139,6 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* INPUT PASSWORD */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-moywoo-slate">
               Kata Sandi
@@ -145,6 +148,7 @@ export default function RegisterPage() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 required
+                minLength={8}
                 placeholder="••••••••"
                 className="w-full h-12 rounded-xl border border-moywoo-slate/20 bg-white pl-4 pr-11 text-sm text-moywoo-slate placeholder:text-moywoo-slate/40 focus:border-moywoo-blue focus:outline-none focus:ring-2 focus:ring-moywoo-blue/30 transition-all"
               />
@@ -154,16 +158,13 @@ export default function RegisterPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-moywoo-slate/50 hover:text-moywoo-slate focus:outline-none"
                 aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
               >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
+            {/* INJEKSI: Helper text agar UX lebih manusiawi */}
+            <p className="text-[11px] font-medium text-moywoo-slate/50 ml-1">Minimal 8 karakter.</p>
           </div>
 
-          {/* TOMBOL SUBMIT */}
           <button
             type="submit"
             disabled={loading}
@@ -180,7 +181,6 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        {/* FOOTER LINK LOGIN */}
         <p className="mt-8 text-center text-sm text-moywoo-slate/75">
           Sudah memiliki akun?{" "}
           <Link

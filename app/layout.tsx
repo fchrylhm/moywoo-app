@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/navbar";
+// INJEKSI: Impor wrapper yang baru kita buat, bukan komponen navbar aslinya
+import NavbarWrapper from "@/components/navbar-wrapper";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 
@@ -22,10 +23,9 @@ export default async function RootLayout({
   return (
     <html lang="id">
       <body className={`${inter.className} bg-zinc-50 min-h-screen text-zinc-900`}>
-        {/* Navbar Global (Satu-satunya sumber kebenaran) */}
-        <Navbar userRole={(session?.user as { role?: "SELLER" | "BUYER" })?.role || null} />
+        {/* EKSEKUSI: Panggil komponen pencegat. Ia akan memutuskan kapan harus muncul. */}
+        <NavbarWrapper userRole={(session?.user as { role?: "SELLER" | "BUYER" })?.role || null} />
         
-        {/* KOREKSI: Pembungkus max-w-7xl dilepas agar landing page bisa edge-to-edge */}
         {children}
       </body>
     </html>

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ShoppingBag, Loader2 } from "lucide-react";
-// KOREKSI: Path import disesuaikan menjadi /action/ (tanpa 's')
+import { ShoppingCart, Loader2 } from "lucide-react";
 import { addToCart } from "@/app/action/cart"; 
 import { useRouter } from "next/navigation";
 
@@ -23,7 +22,6 @@ export default function AddToCartButton({ productId, stock }: AddToCartButtonPro
     setIsPending(false);
 
     if (result.success) {
-      // Refresh router untuk memastikan state keranjang di Navbar/halaman terbaru
       router.refresh(); 
       router.push("/cart");
     } else {
@@ -35,18 +33,18 @@ export default function AddToCartButton({ productId, stock }: AddToCartButtonPro
     <button
       onClick={handleAddToCart}
       disabled={isPending || stock < 1}
-      className={`w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold transition-all ${
+      className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-lg transition-all ${
         stock < 1
-          ? "bg-zinc-200 text-zinc-500 cursor-not-allowed"
-          : "bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95"
+          ? "bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed shadow-none"
+          : "bg-[#E47632] text-white hover:bg-[#c96222] shadow-[0_8px_20px_-6px_rgba(228,118,50,0.4)] hover:-translate-y-0.5 active:scale-95"
       }`}
     >
       {isPending ? (
-        <Loader2 className="w-5 h-5 animate-spin" />
+        <Loader2 className="w-6 h-6 animate-spin" />
       ) : (
-        <ShoppingBag className="w-5 h-5" />
+        <ShoppingCart className="w-6 h-6" />
       )}
-      {stock < 1 ? "Stok Habis" : isPending ? "Memproses..." : "Tambah ke Keranjang"}
+      {stock < 1 ? "Stok Habis Terjual" : isPending ? "Memproses Pesanan..." : "Tambah ke Keranjang"}
     </button>
   );
 }

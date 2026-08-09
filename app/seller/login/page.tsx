@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Loader2, ArrowLeft, ShoppingBag } from "lucide-react";
 import { signIn } from "next-auth/react";
 
 export default function SellerLoginPage() {
@@ -14,35 +14,35 @@ export default function SellerLoginPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault();
-  setError(null);
-  setLoading(true);
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-  const formData = new FormData(e.currentTarget);
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-  try {
-    const res = await signIn("seller-login", {
-      redirect: false,
-      email,
-      password,
-    });
+    try {
+      const res = await signIn("seller-login", {
+        redirect: false,
+        email,
+        password,
+      });
 
-    if (res?.ok && !res.error) {
-      // PAKSA HARD NAVIGATE: Memastikan browser mengirim Cookie JWT yang baru ditanam ke Middleware Vercel
-      window.location.href = "/dashboard";
-    } else {
-      console.log("NextAuth Return Error:", res?.error);
-      setError("Kredensial Organisasi tidak valid.");
+      if (res?.ok && !res.error) {
+        // PAKSA HARD NAVIGATE: Memastikan browser mengirim Cookie JWT yang baru ditanam ke Middleware Vercel
+        window.location.href = "/dashboard";
+      } else {
+        console.log("NextAuth Return Error:", res?.error);
+        setError("Kredensial Organisasi tidak valid.");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      console.error("Submit Error:", err);
+      setError("Terjadi kesalahan koneksi ke server.");
       setLoading(false);
     }
-  } catch (err: any) {
-    console.error("Submit Error:", err);
-    setError("Terjadi kesalahan koneksi ke server.");
-    setLoading(false);
   }
-}
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-moywoo-bg px-4 py-12 sm:px-6 lg:px-8 selection:bg-moywoo-blue selection:text-moywoo-slate">
@@ -62,13 +62,13 @@ export default function SellerLoginPage() {
         <div className="text-center space-y-3 mb-8">
           <Link href="/" className="inline-block">
             <Image
-                      src="/logo-moywoo.png" // <-- Pastikan huruf kecil semua
-                      alt="Moywoo Logo"
-                      width={120}
-                      height={36}
-                      priority
-                      className="h-8 md:h-9 w-auto object-contain"
-                      />
+              src="/logo-moywoo.png" // <-- Pastikan huruf kecil semua
+              alt="Moywoo Logo"
+              width={120}
+              height={36}
+              priority
+              className="h-8 md:h-9 w-auto object-contain"
+            />
           </Link>
           <h1 className="text-2xl font-bold text-moywoo-slate">
             Portal Organisasi
@@ -141,24 +141,34 @@ export default function SellerLoginPage() {
           </button>
         </form>
 
-        {/* NAVIGASI BAWAH: REGISTRASI & CROSS-LINK */}
-        <div className="mt-8 flex flex-col items-center space-y-4">
-          {/* LINK KE REGISTRASI SELLER */}
-          <div className="text-sm text-moywoo-slate/75">
-            Belum memiliki akun Seller?{" "}
-            <Link href="/seller/register" className="font-bold text-moywoo-orange hover:underline transition-all">
-              Daftar Sekarang
-            </Link>
-          </div>
-
-          {/* CROSS-LINK KE PORTAL BUYER */}
-          <div className="text-xs text-moywoo-slate/60">
-            Hanya ingin berbelanja?{" "}
-            <Link href="/login" className="font-bold text-moywoo-blue hover:underline transition-all">
-              Masuk sebagai Pembeli
-            </Link>
-          </div>
+        {/* --- RESTRUKTURISASI HIERARKI NAVIGASI BAWAH --- */}
+        
+        {/* 1. LINK KE REGISTRASI SELLER (Tetap berdekatan dengan form) */}
+        <div className="mt-6 text-center text-sm text-moywoo-slate/75">
+          Belum memiliki akun Seller?{" "}
+          <Link href="/seller/register" className="font-bold text-moywoo-orange hover:underline transition-all">
+            Daftar Sekarang
+          </Link>
         </div>
+
+        {/* 2. DIVIDER PEMISAH KONTEKS */}
+        <div className="my-6 flex items-center gap-4">
+          <div className="h-px flex-1 bg-moywoo-slate/10"></div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-moywoo-slate/40">
+            Atau
+          </span>
+          <div className="h-px flex-1 bg-moywoo-slate/10"></div>
+        </div>
+
+        {/* 3. GHOST BUTTON UNTUK PEMBELI (Tegas namun tidak bersaing dengan CTA Utama) */}
+        <Link
+          href="/login"
+          className="w-full h-12 flex items-center justify-center gap-2 rounded-xl border-2 border-moywoo-slate/10 bg-transparent px-6 text-sm font-semibold text-moywoo-slate hover:bg-moywoo-slate/5 hover:border-moywoo-slate/20 transition-all active:scale-95"
+        >
+          <ShoppingBag className="h-4 w-4" />
+          Masuk sebagai Pembeli
+        </Link>
+
       </div>
     </div>
   );
