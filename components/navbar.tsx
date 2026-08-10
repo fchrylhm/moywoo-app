@@ -20,7 +20,6 @@ export default function Navbar({ userRole = null }: NavbarProps) {
     { name: "Keunggulan", href: "/#keunggulan" },
   ];
 
-  // Fungsi utilitas untuk menutup menu mobile setelah navigasi ditekan
   const closeMenu = () => setIsMobileMenuOpen(false);
 
   return (
@@ -28,12 +27,12 @@ export default function Navbar({ userRole = null }: NavbarProps) {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16 md:h-20">
         <Link href="/" className="flex items-center gap-2 focus:outline-none rounded-lg" onClick={closeMenu}>
           <Image
-          src="/logo-moywoo.png" // <-- Pastikan huruf kecil semua
-          alt="Moywoo Logo"
-          width={120}
-          height={36}
-          priority
-          className="h-8 md:h-9 w-auto object-contain"
+            src="/logo-moywoo.png" 
+            alt="Moywoo Logo"
+            width={120}
+            height={36}
+            priority
+            className="h-8 md:h-9 w-auto object-contain"
           />
         </Link>
 
@@ -87,14 +86,30 @@ export default function Navbar({ userRole = null }: NavbarProps) {
           )}
         </div>
 
-        {/* MOBILE MENU TOGGLE BUTTON */}
-        <button 
-          type="button" 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-          className="inline-flex md:hidden items-center justify-center rounded-xl p-2.5 text-zinc-700 hover:bg-zinc-100 transition-colors"
-        >
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        {/* MOBILE ACTIONS BAR (Termasuk Ikon Ekstraksi Buyer & Hamburger) */}
+        <div className="flex md:hidden items-center">
+          
+          {/* Ekstraksi Ikon Khusus Buyer ke Top Bar */}
+          {isLoggedIn && userRole === "BUYER" && (
+            <div className="flex items-center mr-1">
+              <Link href="/cart" onClick={closeMenu} className="p-2 text-zinc-700 hover:bg-zinc-100 rounded-full transition-colors">
+                <ShoppingBag className="h-[22px] w-[22px]" />
+              </Link>
+              <Link href="/profile" onClick={closeMenu} className="p-2 text-zinc-700 hover:bg-zinc-100 rounded-full transition-colors">
+                <User className="h-[22px] w-[22px]" />
+              </Link>
+            </div>
+          )}
+
+          {/* Hamburger Menu Utama */}
+          <button 
+            type="button" 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+            className="inline-flex items-center justify-center rounded-xl p-2 text-zinc-700 hover:bg-zinc-100 transition-colors"
+          >
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {/* MOBILE MENU RENDER BLOCK */}
@@ -130,17 +145,10 @@ export default function Navbar({ userRole = null }: NavbarProps) {
                   </button>
                 </>
               ) : (
-                <>
-                  <Link href="/cart" onClick={closeMenu} className="w-full flex items-center gap-3 rounded-xl bg-zinc-50 px-5 py-3.5 text-sm font-semibold text-zinc-900 border border-zinc-200">
-                    <ShoppingBag className="h-5 w-5 text-zinc-500" /> Keranjang Belanja
-                  </Link>
-                  <Link href="/profile" onClick={closeMenu} className="w-full flex items-center gap-3 rounded-xl bg-zinc-50 px-5 py-3.5 text-sm font-semibold text-zinc-900 border border-zinc-200">
-                    <User className="h-5 w-5 text-zinc-500" /> Profil Pengguna (Segera)
-                  </Link>
-                  <button onClick={() => { closeMenu(); signOut({ callbackUrl: "/login" }); }} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-50 text-red-600 px-5 py-3.5 text-sm font-semibold border border-red-100 mt-2">
-                    <LogOut className="h-4 w-4" /> Keluar dari Akun
-                  </button>
-                </>
+                // BUYER DROPDOWN: Hanya menyisakan tombol keluar (Keranjang & Profil sudah di luar)
+                <button onClick={() => { closeMenu(); signOut({ callbackUrl: "/login" }); }} className="w-full flex justify-center items-center gap-2 rounded-xl bg-red-50 text-red-600 px-5 py-3.5 text-sm font-semibold border border-red-100">
+                  <LogOut className="h-4 w-4" /> Keluar dari Akun
+                </button>
               )
             ) : (
               <>
